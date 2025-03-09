@@ -26,6 +26,12 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // Handle window close button click
+  mainWindow.on('close', (e) => {
+    e.preventDefault()
+    app.quit()
+  })
+
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -68,6 +74,12 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Handle the quit event
+app.on('before-quit', () => {
+  // Force quit the app
+  app.exit(0)
 })
 
 // In this file you can include the rest of your app's specific main process
