@@ -24,12 +24,15 @@
     "appId": "com.gspro-connector.app",
     "productName": "GSPro Connector",
     "files": [
+      "out/**/*",
       "dist/**/*",
       "package.json"
     ],
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "resources"
     },
+    "asar": true,
     "mac": {
       "category": "public.app-category.sports",
       "target": [
