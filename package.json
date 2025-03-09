@@ -51,7 +51,8 @@
           ]
         }
       ],
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "identity": null
     },
     "win": {
       "target": [
