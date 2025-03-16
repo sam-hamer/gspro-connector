@@ -16,6 +16,16 @@ if (process.contextIsolated) {
       system: () => ipcRenderer.invoke('dark-mode:system'),
       isDark: () => ipcRenderer.invoke('dark-mode:isDark')
     })
+    contextBridge.exposeInMainWorld('electronAPI', {
+      bluetoothPairingRequest: (callback) =>
+        ipcRenderer.on('bluetooth-pairing-request', () => callback()),
+      bluetoothPairingResponse: (response) =>
+        ipcRenderer.send('bluetooth-pairing-response', response),
+      cancelBluetoothRequest: () => ipcRenderer.send('cancel-bluetooth-request'),
+      onBluetoothDevicesFound: (callback) =>
+        ipcRenderer.on('bluetooth-devices-found', (_, deviceList) => callback(deviceList)),
+      selectBluetoothDevice: (deviceId) => ipcRenderer.send('select-bluetooth-device', deviceId)
+    })
   } catch (error) {
     console.error(error)
   }

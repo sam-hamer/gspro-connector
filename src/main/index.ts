@@ -3,6 +3,9 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+let bluetoothPinCallback
+let selectBluetoothCallback
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -30,6 +33,41 @@ function createWindow(): void {
   mainWindow.on('close', (e) => {
     e.preventDefault()
     app.quit()
+  })
+
+  mainWindow.webContents.on('select-bluetooth-device', (event, deviceList, callback) => {
+    event.preventDefault()
+    selectBluetoothCallback = callback
+
+    console.log('Available Bluetooth devices:', deviceList)
+
+    // Show the device list to the user and let them select
+    mainWindow.webContents.send('bluetooth-devices-found', deviceList)
+
+    // Don't call the callback - keep scanning for devices
+    // The callback will be called when the user selects a device or cancels
+  })
+
+  // Handle device selection from the renderer
+  ipcMain.on('select-bluetooth-device', (_, deviceId) => {
+    if (selectBluetoothCallback) {
+      selectBluetoothCallback(deviceId)
+    }
+  })
+
+  ipcMain.on('cancel-bluetooth-request', () => {
+    selectBluetoothCallback('')
+  })
+
+  // Listen for a message from the renderer to get the response for the Bluetooth pairing.
+  ipcMain.on('bluetooth-pairing-response', (_, response) => {
+    bluetoothPinCallback(response)
+  })
+
+  mainWindow.webContents.session.setBluetoothPairingHandler((details, callback) => {
+    bluetoothPinCallback = callback
+    // Send a message to the renderer to prompt the user to confirm the pairing.
+    mainWindow.webContents.send('bluetooth-pairing-request', details)
   })
 
   // HMR for renderer base on electron-vite cli.
