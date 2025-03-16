@@ -1,7 +1,51 @@
-import { WriteType, WriteTypeProperties, ByteConversionUtils } from './byteConversionUtils'
-import { WebApiClient, User, ApiResponse } from './webApi'
+import { ByteConversionUtils } from './byteConversionUtils'
+import { WebApiClient } from './webApi'
 import Encryption from './encryption'
 import { BluetoothDevice } from 'electron'
+
+declare global {
+  interface Navigator {
+    bluetooth: {
+      requestDevice(options: {
+        filters: Array<{ namePrefix: string }>
+        optionalServices: string[]
+      }): Promise<ExtendedBluetoothDevice>
+    }
+  }
+}
+
+interface ExtendedBluetoothDevice extends BluetoothDevice {
+  name?: string
+  gatt?: {
+    connected: boolean
+    connect(): Promise<BluetoothRemoteGATTService>
+    disconnect(): Promise<void>
+    getPrimaryService(uuid: string): Promise<BluetoothRemoteGATTService>
+  }
+}
+
+interface BluetoothRemoteGATTService {
+  getCharacteristic: (uuid: string) => Promise<BluetoothRemoteGATTCharacteristic>
+}
+
+interface BluetoothRemoteGATTCharacteristic {
+  writeValue: (value: Uint8Array) => Promise<void>
+  writeValueWithoutResponse: (value: Uint8Array) => Promise<void>
+  startNotifications: () => Promise<BluetoothRemoteGATTCharacteristic>
+  addEventListener: (
+    type: string,
+    listener: (event: CharacteristicValueChangedEvent) => void
+  ) => void
+}
+
+type CharacteristicValueChangedEvent = {
+  target: {
+    value: {
+      buffer: ArrayBuffer
+    }
+    uuid: string
+  }
+}
 
 const SERVICE_UUID = 'daf9b2a4-e4db-4be4-816d-298a050f25cd'
 const AUTH_REQUEST_CHARACTERISTIC_UUID = 'b1e9ce5b-48c8-4a28-89dd-12ffd779f5e1' // Write Only
@@ -29,7 +73,7 @@ uuidMap.set(WRITE_RESPONSE_CHARACTERISTIC_UUID, 'WRITE_RESPONSE_CHARACTERISTIC_U
 
 class BluetoothManager {
   private primaryService: BluetoothRemoteGATTService | null
-  private bluetoothDevice: BluetoothDevice | null
+  private bluetoothDevice: ExtendedBluetoothDevice | null
   private encryption: Encryption
   private userToken: string
   private heartbeatTimer: number | null
@@ -148,8 +192,11 @@ class BluetoothManager {
     }
   }
 
-  async connectToDeviceAsync(device: BluetoothDevice): Promise<void> {
+  async connectToDeviceAsync(device: ExtendedBluetoothDevice): Promise<void> {
     try {
+      if (!device.gatt) {
+        throw new Error('Bluetooth GATT not available')
+      }
       await device.gatt.connect()
       console.log('Device Connected')
 
@@ -159,8 +206,12 @@ class BluetoothManager {
       this.bluetoothDevice = device
       await this.setupBluetoothDevice()
       console.log('Bluetooth Device Setup Completed')
-    } catch (ex) {
-      console.error(`Error connecting to device: ${ex.message}`)
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error connecting to device: ${error.message}`)
+      } else {
+        console.error(`Error connecting to device: ${String(error)}`)
+      }
     }
   }
 
@@ -230,7 +281,11 @@ class BluetoothManager {
       console.log('Successfully Subscribed to all notifications')
       return true
     } catch (error) {
-      console.error('Error subscribing to characteristics:', error)
+      if (error instanceof Error) {
+        console.error('Error subscribing to characteristics:', error.message)
+      } else {
+        console.error('Error subscribing to characteristics:', String(error))
+      }
       return false
     }
   }
@@ -378,7 +433,11 @@ class BluetoothManager {
 
       return status
     } catch (error) {
-      console.error('Error sending device auth request:', error)
+      if (error instanceof Error) {
+        console.error('Error sending device auth request:', error.message)
+      } else {
+        console.error('Error sending device auth request:', String(error))
+      }
       return false
     }
   }
@@ -389,12 +448,19 @@ class BluetoothManager {
     value: Uint8Array
   ): Promise<boolean> {
     try {
+      if (!this.primaryService) {
+        throw new Error('Primary service not available')
+      }
       const characteristic = await this.primaryService.getCharacteristic(characteristicUuid)
       await characteristic.writeValue(value)
       console.log('Value written to characteristic: ', uuidMap.get(characteristicUuid))
       return true
     } catch (error) {
-      console.error('Error writing value to characteristic:', error)
+      if (error instanceof Error) {
+        console.error('Error writing value to characteristic:', error.message)
+      } else {
+        console.error('Error writing value to characteristic:', String(error))
+      }
       return false
     }
   }
@@ -410,7 +476,11 @@ class BluetoothManager {
 
       return status
     } catch (error) {
-      console.error('Error writing command:', error)
+      if (error instanceof Error) {
+        console.error('Error writing command:', error.message)
+      } else {
+        console.error('Error writing command:', String(error))
+      }
       return false
     }
   }
@@ -430,7 +500,11 @@ class BluetoothManager {
 
       return status
     } catch (error) {
-      console.error('Error writing config:', error)
+      if (error instanceof Error) {
+        console.error('Error writing config:', error.message)
+      } else {
+        console.error('Error writing config:', String(error))
+      }
       return false
     }
   }
@@ -441,18 +515,22 @@ class BluetoothManager {
     data: Uint8Array
   ): Promise<boolean> {
     try {
-      console.log('writeCharacteristic :: characteristicUUID:', uuidMap.get(characteristicUuid))
-      // Get the characteristic for the specified characteristic UUID
+      if (!this.primaryService) {
+        throw new Error('Primary service not available')
+      }
+      //   console.log('writeCharacteristic :: characteristicUUID:', uuidMap.get(characteristicUuid))
       const characteristic = await this.primaryService.getCharacteristic(characteristicUuid)
-
-      // Write value to the characteristic without expecting a response
       await characteristic.writeValueWithoutResponse(data)
 
-      console.log('writeCharacteristic :: characteristic.writeValueWithoutResponse')
+      //   console.log('writeCharacteristic :: characteristic.writeValueWithoutResponse')
 
       return true
     } catch (error) {
-      console.error(`Error writing value to characteristic ${characteristicUuid}:`, error)
+      if (error instanceof Error) {
+        console.error(`Error writing value to characteristic ${characteristicUuid}:`, error.message)
+      } else {
+        console.error(`Error writing value to characteristic ${characteristicUuid}:`, String(error))
+      }
       return false
     }
   }
