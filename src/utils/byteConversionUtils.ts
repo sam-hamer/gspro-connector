@@ -102,8 +102,10 @@ class ByteConversionUtils {
         bytes.push(parseInt(hex.substring(i, i + 2), 16))
       }
       return bytes
-    } catch (e) {
-      console.log(e.message)
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log(error.message)
+      }
       return []
     }
   }

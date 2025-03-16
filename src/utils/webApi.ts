@@ -48,8 +48,10 @@ class WebApiClient {
         success: content.success,
         user: content.user
       }
-    } catch (error) {
-      console.log(`Error: ${error.message}`)
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.log(`Error: ${error.message}`)
+      }
       return null
     }
   }

@@ -1,6 +1,7 @@
 import { WriteType, WriteTypeProperties, ByteConversionUtils } from './byteConversionUtils'
 import { WebApiClient, User, ApiResponse } from './webApi'
 import Encryption from './encryption'
+import { BluetoothDevice } from 'electron'
 
 const SERVICE_UUID = 'daf9b2a4-e4db-4be4-816d-298a050f25cd'
 const AUTH_REQUEST_CHARACTERISTIC_UUID = 'b1e9ce5b-48c8-4a28-89dd-12ffd779f5e1' // Write Only
@@ -34,6 +35,8 @@ class BluetoothManager {
   private heartbeatTimer: number | null
   private lastHeartbeatReceived: number
   private webApiClient: WebApiClient
+  private batteryLevel: number
+  private isDeviceSetup: boolean
 
   constructor() {
     this.primaryService = null
@@ -42,6 +45,9 @@ class BluetoothManager {
     this.userToken = ''
     this.heartbeatTimer = null
     this.lastHeartbeatReceived = 0
+    this.webApiClient = new WebApiClient()
+    this.batteryLevel = 0
+    this.isDeviceSetup = false
   }
 
   async discoverDevicesAsync(): Promise<void> {
@@ -159,7 +165,7 @@ class BluetoothManager {
   }
 
   async setupBluetoothDevice(): Promise<void> {
-    const isDeviceSetup = await this.subscribeToCharacteristicsAsync()
+    this.isDeviceSetup = await this.subscribeToCharacteristicsAsync()
 
     const authStatus = await this.sendDeviceAuthRequest()
     if (authStatus) {
@@ -279,6 +285,36 @@ class BluetoothManager {
               return
             }
           }
+        }
+      } else if (senderUuid === EVENTS_CHARACTERISTIC_UUID && this.isDeviceSetup) {
+        console.log('events characteristic value changed:', value)
+        const decrypted = await this.encryption.decrypt(value)
+        if (!decrypted) return
+
+        switch (decrypted[0]) {
+          case 0:
+            console.log('Connected, shot happened')
+            break
+          case 1:
+            console.log('Connected, processing shot')
+            break
+          case 2:
+            console.log('Connected, ready')
+            break
+          case 3:
+            this.batteryLevel = decrypted[1]
+            console.log('Connected, battery level:', this.batteryLevel)
+            break
+          case 5:
+            if (decrypted[1] === 0) {
+              console.log('Connected, alarm reset')
+            } else if (decrypted[1] === 1) {
+              console.log('Connected, disarmed')
+            }
+            break
+          default:
+            console.log('unknown event type')
+            break
         }
       }
     } catch (error) {
