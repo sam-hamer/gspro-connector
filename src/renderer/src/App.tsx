@@ -1,5 +1,9 @@
 import { useEffect } from 'react'
-import { ThemeToggle } from './components/theme-toggle'
+import { Routes, Route } from 'react-router-dom'
+import { MenuBar } from './components/menu-bar'
+import HomePage from './app/page'
+import GolfShotsPage from './app/golf-shots/page'
+import SettingsPage from './app/settings/page'
 
 function App(): JSX.Element {
   useEffect(() => {
@@ -14,9 +18,15 @@ function App(): JSX.Element {
   }, [])
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground p-4 gap-4">
-      <div className="text-3xl font-bold">GSPro Connector</div>
-      <ThemeToggle />
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      <MenuBar />
+      <main className="flex-1 p-4">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/golf-shots" element={<GolfShotsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </main>
     </div>
   )
 }
