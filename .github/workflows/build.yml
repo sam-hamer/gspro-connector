@@ -53,4 +53,5 @@ jobs:
             release/*.dmg
             release/*.exe
             release/*.zip
+          compression-level: 9
           if-no-files-found: ignore

@@ -1,12 +1,32 @@
-import { Button } from './components/ui/button'
+import { useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
+import { MenuBar } from './components/menu-bar'
+import HomePage from './app/page'
+import GolfShotsPage from './app/golf-shots/page'
+import SettingsPage from './app/settings/page'
 
 function App(): JSX.Element {
+  useEffect(() => {
+    const initTheme = async (): Promise<void> => {
+      await window.darkMode.system()
+      const isDark = await window.darkMode.isDark()
+      document.documentElement.classList.remove('light', 'dark')
+      document.documentElement.classList.add(isDark ? 'dark' : 'light')
+    }
+
+    void initTheme()
+  }, [])
+
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground">
-      <div className="text-3xl font-bold">GSPro Connector</div>
-      <Button variant="success" className="cursor-pointer">
-        Click me
-      </Button>
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      <MenuBar />
+      <main className="flex-1 p-4">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/golf-shots" element={<GolfShotsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </main>
     </div>
   )
 }

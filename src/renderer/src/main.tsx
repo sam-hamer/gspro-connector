@@ -1,11 +1,18 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { ThemeProvider } from 'next-themes'
+import { BrowserRouter } from 'react-router-dom'
+import App from './App'
 import './assets/main.css'
 
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
+const root = createRoot(document.getElementById('root') as HTMLElement)
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+root.render(
+  <StrictMode>
+    <BrowserRouter>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </BrowserRouter>
+  </StrictMode>
 )
