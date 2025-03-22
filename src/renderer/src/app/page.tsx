@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Progress } from '../components/ui/progress'
+import { bluetoothManager } from '../../../utils/bluetooth'
 
 export default function LaunchMonitorConnector(): JSX.Element {
   const [isConnected, setIsConnected] = useState(false)
@@ -13,6 +14,46 @@ export default function LaunchMonitorConnector(): JSX.Element {
   const [batteryPercentage, setBatteryPercentage] = useState(75)
   const [isApiConnected, setIsApiConnected] = useState(false)
   const [apiStatus, setApiStatus] = useState('Disconnected')
+  const [showPairingPrompt, setShowPairingPrompt] = useState(false)
+  const [showDeviceList, setShowDeviceList] = useState(false)
+  const [devices, setDevices] = useState<Array<{ deviceId: string; deviceName?: string }>>([])
+
+  useEffect(() => {
+    // Register Bluetooth pairing request handler
+    console.log('Setting up Bluetooth pairing request handler')
+    const handler = (): void => {
+      console.log('Bluetooth pairing request received')
+      setShowPairingPrompt(true)
+    }
+    window.electronAPI.bluetoothPairingRequest(handler)
+  }, [])
+
+  useEffect(() => {
+    // Listen for devices found
+    window.electronAPI.onBluetoothDevicesFound(
+      (deviceList: { deviceId: string; deviceName?: string }[]) => {
+        console.log('Devices found:', deviceList)
+        setDevices(deviceList)
+        setShowDeviceList(true)
+      }
+    )
+  }, [])
+
+  const handlePairingResponse = (accept: boolean): void => {
+    console.log('Handling pairing response:', accept)
+    window.electronAPI.bluetoothPairingResponse(accept)
+    setShowPairingPrompt(false)
+  }
+
+  const handleDeviceSelect = (deviceId: string): void => {
+    window.electronAPI.selectBluetoothDevice(deviceId)
+    setShowDeviceList(false)
+  }
+
+  const handleCancelDeviceSelection = (): void => {
+    window.electronAPI.cancelBluetoothRequest()
+    setShowDeviceList(false)
+  }
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -27,13 +68,43 @@ export default function LaunchMonitorConnector(): JSX.Element {
     return (): void => clearInterval(interval)
   }, [isConnected])
 
-  const toggleConnection = (): void => {
+  const toggleConnection = async (): Promise<void> => {
+    console.log('toggleConnection :: start')
+    if (!isConnected) {
+      try {
+        console.log('Attempting to discover devices...')
+        await bluetoothManager.discoverDevicesAsync()
+        console.log('Device discovery initiated')
+      } catch (error) {
+        console.error('Error during device discovery:', error)
+        if (error instanceof Error) {
+          console.error('Error details:', error.message)
+          if (error.stack) {
+            console.error('Stack trace:', error.stack)
+          }
+        }
+        return // Don't set isConnected to true if there was an error
+      }
+    } else {
+      try {
+        console.log('Attempting to disconnect...')
+        await bluetoothManager.disconnectDeviceAsync()
+        console.log('Device disconnected')
+      } catch (error) {
+        console.error('Error disconnecting:', error)
+      }
+    }
     setIsConnected((prev) => !prev)
     if (isConnected) setIsArmed(false)
   }
 
   const toggleArmed = (): void => {
     if (!isConnected) return
+    if (isArmed) {
+      bluetoothManager.disarmDeviceAsync()
+    } else {
+      bluetoothManager.armDeviceAsync()
+    }
     setIsArmed((prev) => !prev)
   }
 
@@ -44,6 +115,58 @@ export default function LaunchMonitorConnector(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-6">
+      {showDeviceList && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-[400px] relative">
+            <CardHeader>
+              <CardTitle>Select Bluetooth Device</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {devices.length === 0 ? (
+                  <p className="text-muted-foreground">Searching for devices...</p>
+                ) : (
+                  devices.map((device) => (
+                    <Button
+                      key={device.deviceId}
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => handleDeviceSelect(device.deviceId)}
+                    >
+                      {device.deviceName || 'Unknown Device'}
+                    </Button>
+                  ))
+                )}
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={handleCancelDeviceSelection}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showPairingPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-[300px] relative">
+            <CardHeader>
+              <CardTitle>Bluetooth Pairing Request</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>Would you like to pair with the Launch Monitor device?</p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => handlePairingResponse(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => handlePairingResponse(true)}>Pair</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <header className="container mx-auto max-w-5xl mb-8">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Launch Monitor</h1>
@@ -59,18 +182,11 @@ export default function LaunchMonitorConnector(): JSX.Element {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Launch Monitor Card */}
           <Card className="bg-card border-border shadow-lg relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
               <CardTitle className="text-lg font-semibold text-foreground">
                 Launch Monitor Status
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <MoreVertical size={20} />
-              </Button>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Connection Status */}
@@ -150,7 +266,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
                   disabled={!isConnected}
                   className={`flex-1 ${
                     isArmed
-                      ? 'bg-muted text-muted-foreground hover:bg-muted/80 border-border'
+                      ? 'bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/30'
                       : 'bg-success/10 text-success hover:bg-success/20 border-success/30'
                   }`}
                 >
@@ -162,7 +278,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
 
           {/* API Connection Card */}
           <Card className="bg-card border-border shadow-lg relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
               <CardTitle className="text-lg font-semibold text-foreground">
                 API Connection
