@@ -5,23 +5,32 @@ class WebApiClient {
   private _btEncryption: Encryption
   private _byteConversionUtils: typeof ByteConversionUtils
   private _baseUrl: string
-  private _secretValue: string
+  private _secretValue: string | null = null
+  private _secretEnc: string
+  private _secretByteArr: Uint8Array
 
-  constructor() {
+  private constructor() {
     this._btEncryption = new Encryption()
     this._byteConversionUtils = ByteConversionUtils
-    this._baseUrl = 'https://mlm.rapsodo.com/api/simulator/user/' // Set your base URL here
-    // this._secretEnc =
-    //   "19605BE9BD42E0B3AEB20003847376012404EC9D72BB5586391F01BE03F031163242C34CD55C2C3E77D10D9A43A677A6";
-    // this._secretByteArr = this._byteConversionUtils.stringToByteArray(
-    //   this._secretEnc,
-    // );
-    //const decryptedSecret = this._btEncryption.decrypt(this._secretByteArr);
-    //console.log("decrypted secret:", decryptedSecret);
-    // this._secretValue = new TextDecoder("utf-8").decode(
-    //   new Uint8Array(decryptedSecret).buffer,
-    // );
-    this._secretValue = 'd3d4baff-02c7-4c91-8100-2e362936e06e'
+    this._baseUrl = 'https://mlm.rapsodo.com/api/simulator/user/'
+    this._secretEnc =
+      '19605BE9BD42E0B3AEB20003847376012404EC9D72BB5586391F01BE03F031163242C34CD55C2C3E77D10D9A43A677A6'
+    this._secretByteArr = new Uint8Array(
+      this._byteConversionUtils.stringToByteArray(this._secretEnc)
+    )
+  }
+
+  static async create(): Promise<WebApiClient> {
+    const client = new WebApiClient()
+    await client.initialize()
+    return client
+  }
+
+  async initialize(): Promise<void> {
+    const decryptedSecret = await this._btEncryption.decrypt(this._secretByteArr)
+    if (decryptedSecret) {
+      this._secretValue = new TextDecoder('utf-8').decode(decryptedSecret.buffer as ArrayBuffer)
+    }
   }
 
   async sendRequestAsync(userId: string): Promise<ApiResponse | null> {
@@ -32,7 +41,7 @@ class WebApiClient {
       console.log('user id:', userId, 'secret:', this._secretValue)
       const response = await fetch(requestUri, {
         headers: {
-          Secret: this._secretValue
+          Secret: this._secretValue ?? ''
         }
       })
 

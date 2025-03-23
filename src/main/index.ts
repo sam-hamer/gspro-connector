@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { tcpService } from './tcpService'
 
 let bluetoothPinCallback
 let selectBluetoothCallback
@@ -19,6 +20,9 @@ function createWindow(): void {
       sandbox: false
     }
   })
+
+  // Store the window reference globally
+  global.mainWindow = mainWindow
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -94,6 +98,19 @@ ipcMain.handle('dark-mode:system', () => {
 
 ipcMain.handle('dark-mode:isDark', () => {
   return nativeTheme.shouldUseDarkColors
+})
+
+// TCP IPC handlers
+ipcMain.handle('tcp:connect', async (_, host: string, port: number) => {
+  return tcpService.connect(host, port)
+})
+
+ipcMain.handle('tcp:disconnect', async () => {
+  return tcpService.disconnect()
+})
+
+ipcMain.handle('tcp:send', async (_, data: unknown) => {
+  return tcpService.sendJson(data)
 })
 
 // This method will be called when Electron has finished
