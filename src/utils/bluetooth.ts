@@ -78,7 +78,7 @@ class BluetoothManager {
   private userToken: string
   private heartbeatTimer: number | null
   private lastHeartbeatReceived: number
-  private webApiClient: WebApiClient
+  private webApiClient: WebApiClient | null = null
   private batteryLevel: number
   private isDeviceSetup: boolean
 
@@ -89,9 +89,12 @@ class BluetoothManager {
     this.userToken = ''
     this.heartbeatTimer = null
     this.lastHeartbeatReceived = 0
-    this.webApiClient = new WebApiClient()
     this.batteryLevel = 0
     this.isDeviceSetup = false
+  }
+
+  async initializeWebApiClient(): Promise<void> {
+    this.webApiClient = await WebApiClient.create()
   }
 
   async discoverDevicesAsync(): Promise<void> {
@@ -204,6 +207,7 @@ class BluetoothManager {
       console.log('Primary Service Obtained')
 
       this.bluetoothDevice = device
+      await this.initializeWebApiClient()
       await this.setupBluetoothDevice()
       console.log('Bluetooth Device Setup Completed')
     } catch (error) {
@@ -320,9 +324,11 @@ class BluetoothManager {
               // Retrieve the USER ID from the device's response
               const byteArrayToInt = ByteConversionUtils.byteArrayToInt(Array.from(byteArr3), true)
 
-              this.webApiClient = new WebApiClient()
+              if (!this.webApiClient) {
+                await this.initializeWebApiClient()
+              }
               // Call the WebApiClient to get the authorization token for the device using the USER ID
-              const response = await this.webApiClient.sendRequestAsync(byteArrayToInt.toString())
+              const response = await this.webApiClient?.sendRequestAsync(byteArrayToInt.toString())
 
               if (response && response.success && response.user.token) {
                 const initialParameters = this.getInitialParameters(response.user.token)
