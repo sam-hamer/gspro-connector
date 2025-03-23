@@ -1,22 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Battery, Bluetooth, Signal, Power, Link2, Link2Off, MoreVertical } from 'lucide-react'
+import { Battery, Power, Link2, Link2Off } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Progress } from '../components/ui/progress'
+import { Input } from '../components/ui/input'
 import { bluetoothManager } from '../../../utils/bluetooth'
+import { Label } from '../components/ui/label'
 
 export default function LaunchMonitorConnector(): JSX.Element {
   const [isConnected, setIsConnected] = useState(false)
   const [isArmed, setIsArmed] = useState(false)
   const [batteryPercentage, setBatteryPercentage] = useState(75)
-  const [isApiConnected, setIsApiConnected] = useState(false)
-  const [apiStatus, setApiStatus] = useState('Disconnected')
   const [showPairingPrompt, setShowPairingPrompt] = useState(false)
   const [showDeviceList, setShowDeviceList] = useState(false)
   const [devices, setDevices] = useState<Array<{ deviceId: string; deviceName?: string }>>([])
+  const [isTcpConnected, setIsTcpConnected] = useState(false)
+  const [tcpHost, setTcpHost] = useState('localhost')
+  const [tcpPort, setTcpPort] = useState('921')
 
   useEffect(() => {
     // Register Bluetooth pairing request handler
@@ -108,9 +111,103 @@ export default function LaunchMonitorConnector(): JSX.Element {
     setIsArmed((prev) => !prev)
   }
 
-  const toggleApiConnection = (): void => {
-    setIsApiConnected((prev) => !prev)
-    setApiStatus(isApiConnected ? 'Disconnected' : 'Connected')
+  useEffect(() => {
+    // Set up TCP data listener
+    window.electronAPI.onTcpData((data) => {
+      console.log('Received from TCP server:', data)
+
+      // Handle connection status messages
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'type' in data &&
+        'status' in data &&
+        data.type === 'connection_status'
+      ) {
+        switch (data.status) {
+          case 'connected':
+            setIsTcpConnected(true)
+            break
+          case 'closed':
+          case 'error':
+            setIsTcpConnected(false)
+            if (data.status === 'error' && 'error' in data) {
+              console.error('TCP connection error:', data.error)
+            }
+            break
+        }
+      } else {
+        // Handle regular data messages
+        console.log('Received data message:', data)
+      }
+    })
+  }, [])
+
+  const connectToTcpServer = async (): Promise<void> => {
+    try {
+      const port = parseInt(tcpPort, 10)
+      if (isNaN(port) || port < 1 || port > 65535) {
+        console.error('Invalid port number')
+        return
+      }
+      await window.electronAPI.tcpConnect(tcpHost, port)
+      setIsTcpConnected(true)
+    } catch (error) {
+      console.error('Failed to connect to TCP server:', error)
+      setIsTcpConnected(false)
+    }
+  }
+
+  const disconnectFromTcpServer = async (): Promise<void> => {
+    try {
+      await window.electronAPI.tcpDisconnect()
+      setIsTcpConnected(false)
+    } catch (error) {
+      console.error('Failed to disconnect from TCP server:', error)
+    }
+  }
+
+  const sendTestData = async (): Promise<void> => {
+    try {
+      const testShot = {
+        DeviceID: 'GSPro LM 1.1',
+        Units: 'Yards',
+        ShotNumber: 13,
+        APIversion: '1',
+        BallData: {
+          Speed: 180,
+          SpinAxis: -1.2,
+          TotalSpin: 3250.0,
+          BackSpin: 2500.0,
+          SideSpin: -800.0,
+          HLA: 2.3,
+          VLA: 8.3,
+          CarryDistance: 256.5
+        },
+        ClubData: {
+          Speed: 0.0,
+          AngleOfAttack: 0.0,
+          FaceToTarget: 0.0,
+          Lie: 0.0,
+          Loft: 0.0,
+          Path: 0.0,
+          SpeedAtImpact: 0.0,
+          VerticalFaceImpact: 0.0,
+          HorizontalFaceImpact: 0.0,
+          ClosureRate: 0.0
+        },
+        ShotDataOptions: {
+          ContainsBallData: true,
+          ContainsClubData: false,
+          LaunchMonitorIsReady: true,
+          LaunchMonitorBallDetected: true,
+          IsHeartBeat: false
+        }
+      }
+      await window.electronAPI.tcpSend(testShot)
+    } catch (error) {
+      console.error('Failed to send data:', error)
+    }
   }
 
   return (
@@ -191,21 +288,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
             <CardContent className="space-y-6">
               {/* Connection Status */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Bluetooth
-                      className={`${isConnected ? 'text-success' : 'text-muted-foreground'}`}
-                      size={20}
-                    />
-                    <span className="text-sm text-muted-foreground">Connection</span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`${isConnected ? 'bg-success/10 text-success border-success/20' : 'bg-muted/50 text-muted-foreground border-border'}`}
-                  >
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                  </Badge>
-                </div>
+                <div className="flex items-center justify-between"></div>
 
                 {/* Armed Status */}
                 <div className="flex items-center justify-between">
@@ -283,64 +366,78 @@ export default function LaunchMonitorConnector(): JSX.Element {
               <CardTitle className="text-lg font-semibold text-foreground">
                 API Connection
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <MoreVertical size={20} />
-              </Button>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Connection Settings */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Label htmlFor="host">Host</Label>
+                    <Input
+                      id="host"
+                      type="text"
+                      placeholder="Host (e.g. localhost)"
+                      value={tcpHost}
+                      onChange={(e) => setTcpHost(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Label htmlFor="port">Port</Label>
+                    <Input
+                      id="port"
+                      type="number"
+                      placeholder="Port"
+                      value={tcpPort}
+                      onChange={(e) => setTcpPort(e.target.value)}
+                      className="w-24"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* API Status */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {isApiConnected ? (
+                    {isTcpConnected ? (
                       <Link2 className="text-success" size={20} />
                     ) : (
                       <Link2Off className="text-muted-foreground" size={20} />
                     )}
-                    <span className="text-sm text-muted-foreground">API Status</span>
+                    <span className="text-sm text-muted-foreground">OpenAPI Status</span>
                   </div>
                   <Badge
                     variant="outline"
-                    className={`${isApiConnected ? 'bg-success/10 text-success border-success/20' : 'bg-muted/50 text-muted-foreground border-border'}`}
+                    className={`${isTcpConnected ? 'bg-success/10 text-success border-success/20' : 'bg-muted/50 text-muted-foreground border-border'}`}
                   >
-                    {apiStatus}
-                  </Badge>
-                </div>
-
-                {/* Data Sync Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Signal
-                      className={`${isApiConnected ? 'text-success' : 'text-muted-foreground'}`}
-                      size={20}
-                    />
-                    <span className="text-sm text-muted-foreground">Data Sync</span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`${isApiConnected ? 'bg-success/10 text-success border-success/20' : 'bg-muted/50 text-muted-foreground border-border'}`}
-                  >
-                    {isApiConnected ? 'Active' : 'Inactive'}
+                    {isTcpConnected ? 'Connected' : 'Disconnected'}
                   </Badge>
                 </div>
               </div>
 
-              {/* API Action Button */}
-              <Button
-                variant="outline"
-                onClick={toggleApiConnection}
-                className={`w-full ${
-                  isApiConnected
-                    ? 'bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/30'
-                    : 'bg-success/10 text-success hover:bg-success/20 border-success/30'
-                }`}
-              >
-                {isApiConnected ? 'Disconnect API' : 'Connect API'}
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={isTcpConnected ? disconnectFromTcpServer : connectToTcpServer}
+                  className={`flex-1 ${
+                    isTcpConnected
+                      ? 'bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/30'
+                      : 'bg-success/10 text-success hover:bg-success/20 border-success/30'
+                  }`}
+                >
+                  {isTcpConnected ? 'Disconnect TCP' : 'Connect TCP'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={sendTestData}
+                  disabled={!isTcpConnected}
+                  className="flex-1"
+                >
+                  Send Test Shot
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -24,7 +24,16 @@ if (process.contextIsolated) {
       cancelBluetoothRequest: () => ipcRenderer.send('cancel-bluetooth-request'),
       onBluetoothDevicesFound: (callback) =>
         ipcRenderer.on('bluetooth-devices-found', (_, deviceList) => callback(deviceList)),
-      selectBluetoothDevice: (deviceId) => ipcRenderer.send('select-bluetooth-device', deviceId)
+      selectBluetoothDevice: (deviceId) => ipcRenderer.send('select-bluetooth-device', deviceId),
+      // TCP functions
+      tcpConnect: (host: string, port: number) => ipcRenderer.invoke('tcp:connect', host, port),
+      tcpDisconnect: () => ipcRenderer.invoke('tcp:disconnect'),
+      tcpSend: (data: unknown) => ipcRenderer.invoke('tcp:send', data),
+      onTcpData: (callback: (data: unknown) => void) => {
+        ipcRenderer.on('tcp:data', (_, data) => {
+          callback(data)
+        })
+      }
     })
   } catch (error) {
     console.error(error)
