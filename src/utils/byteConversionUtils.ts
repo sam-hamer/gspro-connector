@@ -29,6 +29,17 @@ class WriteTypeProperties {
   }
 }
 
+interface ShotData {
+  clubHeadSpeed: number // mph
+  ballSpeed: number // mph
+  hla: number // degrees
+  vla: number // degrees
+  spinAxis: number // degrees
+  totalSpin: number // rpm
+  carryDistance: number // yards
+  totalDistance: number // yards
+}
+
 class ByteConversionUtils {
   static shortToByteArray(s: number, littleEndian: boolean): number[] {
     const byte0 = s & 0xff
@@ -148,6 +159,53 @@ class ByteConversionUtils {
     view.setInt16(0, value, true) // little endian
     return view.getInt16(0, true)
   }
+
+  static parseShotData(hexString: string): ShotData | null {
+    try {
+      // Convert hex string to byte array
+      const bytes = this.stringToByteArray(hexString)
+
+      if (bytes.length < 20) {
+        console.log('Invalid shot data length')
+        return null
+      }
+
+      // Parse each value as int16 little endian
+      const parseInt16 = (offset: number): number => {
+        const buffer = new ArrayBuffer(2)
+        const view = new DataView(buffer)
+        view.setUint8(0, bytes[offset])
+        view.setUint8(1, bytes[offset + 1])
+        return view.getInt16(0, true) // true for little endian
+      }
+
+      return {
+        clubHeadSpeed: parseFloat((parseInt16(0) / 10).toFixed(1)),
+        ballSpeed: parseFloat((parseInt16(2) / 10).toFixed(1)),
+        hla: parseFloat((parseInt16(4) / 10).toFixed(1)),
+        vla: parseFloat((parseInt16(6) / 10).toFixed(1)),
+        spinAxis: parseFloat((parseInt16(8) / 10).toFixed(1)),
+        totalSpin: parseFloat((parseInt16(10) / 10).toFixed(1)),
+        carryDistance: parseFloat((parseInt16(12) / 10).toFixed(1)),
+        totalDistance: parseFloat((parseInt16(14) / 10).toFixed(1))
+      }
+    } catch (error) {
+      console.log('Error parsing shot data:', error)
+      return null
+    }
+  }
+
+  static formatShotData(shotData: ShotData): string {
+    return `Club Head Speed: ${shotData.clubHeadSpeed} mph
+Ball Speed: ${shotData.ballSpeed} mph
+HLA: ${shotData.hla}°
+VLA: ${shotData.vla}°
+Spin Axis: ${shotData.spinAxis}°
+Total Spin: ${shotData.totalSpin} rpm
+Carry Distance: ${shotData.carryDistance} yards
+Total Distance: ${shotData.totalDistance} yards`
+  }
 }
 
 export { WriteType, WriteTypeProperties, ByteConversionUtils }
+export type { ShotData }
