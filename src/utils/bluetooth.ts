@@ -270,17 +270,16 @@ class BluetoothManager {
       )
       await writeResponseCharacteristic.startNotifications()
 
-      //   const measurementCharacteristic =
-      //     await this.primaryService.getCharacteristic(
-      //       MEASUREMENT_CHARACTERISTIC_UUID,
-      //     );
-      //   if (measurementCharacteristic == null) return false;
-      //   measurementCharacteristic.addEventListener(
-      //     "characteristicvaluechanged",
-      //     this.handleCharacteristicValueChanged.bind(this),
-      //   );
-      //   await measurementCharacteristic.startNotifications();
-      //   console.log("Subscribed to measurement characteristic");
+      const measurementCharacteristic = await this.primaryService.getCharacteristic(
+        MEASUREMENT_CHARACTERISTIC_UUID
+      )
+      if (measurementCharacteristic == null) return false
+      measurementCharacteristic.addEventListener(
+        'characteristicvaluechanged',
+        this.handleCharacteristicValueChanged.bind(this)
+      )
+      await measurementCharacteristic.startNotifications()
+      console.log('Subscribed to measurement characteristic')
 
       console.log('Successfully Subscribed to all notifications')
       return true
