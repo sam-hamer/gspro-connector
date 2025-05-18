@@ -270,17 +270,16 @@ class BluetoothManager {
       )
       await writeResponseCharacteristic.startNotifications()
 
-      //   const measurementCharacteristic =
-      //     await this.primaryService.getCharacteristic(
-      //       MEASUREMENT_CHARACTERISTIC_UUID,
-      //     );
-      //   if (measurementCharacteristic == null) return false;
-      //   measurementCharacteristic.addEventListener(
-      //     "characteristicvaluechanged",
-      //     this.handleCharacteristicValueChanged.bind(this),
-      //   );
-      //   await measurementCharacteristic.startNotifications();
-      //   console.log("Subscribed to measurement characteristic");
+      const measurementCharacteristic = await this.primaryService.getCharacteristic(
+        MEASUREMENT_CHARACTERISTIC_UUID
+      )
+      if (measurementCharacteristic == null) return false
+      measurementCharacteristic.addEventListener(
+        'characteristicvaluechanged',
+        this.handleCharacteristicValueChanged.bind(this)
+      )
+      await measurementCharacteristic.startNotifications()
+      console.log('Subscribed to measurement characteristic')
 
       console.log('Successfully Subscribed to all notifications')
       return true
@@ -376,6 +375,29 @@ class BluetoothManager {
           default:
             console.log('unknown event type')
             break
+        }
+      } else if (senderUuid === MEASUREMENT_CHARACTERISTIC_UUID && this.isDeviceSetup) {
+        console.log('Measurement characteristic value changed:', value)
+        const decrypted = await this.encryption.decrypt(value)
+        if (!decrypted) return
+
+        // Convert the decrypted bytes to a hex string
+        const hexString = ByteConversionUtils.byteArrayToHexString(Array.from(decrypted))
+        console.log('Decrypted hex string:', hexString)
+
+        // Parse the shot data
+        const shotData = ByteConversionUtils.parseShotData(hexString)
+        if (shotData) {
+          console.log('Parsed shot data:', shotData)
+          // Send shot data to GSPro
+          try {
+            await window.electronAPI.tcpSend(shotData)
+            console.log('Shot data sent to GSPro successfully')
+          } catch (error) {
+            console.error('Error sending shot data to GSPro:', error)
+          }
+        } else {
+          console.log('Failed to parse shot data')
         }
       }
     } catch (error) {

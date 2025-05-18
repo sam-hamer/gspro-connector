@@ -29,6 +29,31 @@ class WriteTypeProperties {
   }
 }
 
+interface ShotData {
+  DeviceID: string
+  Units: string
+  ShotNumber: number
+  APIversion: string
+  BallData: {
+    Speed: number
+    SpinAxis: number
+    TotalSpin: number
+    BackSpin: number
+    SideSpin: number
+    HLA: number
+    VLA: number
+  }
+  ClubData: {
+    Speed: number
+  }
+  ShotDataOptions: {
+    ContainsBallData: boolean
+    ContainsClubData: boolean
+    LaunchMonitorIsReady: boolean
+    IsHeartBeat: boolean
+  }
+}
+
 class ByteConversionUtils {
   static shortToByteArray(s: number, littleEndian: boolean): number[] {
     const byte0 = s & 0xff
@@ -148,6 +173,101 @@ class ByteConversionUtils {
     view.setInt16(0, value, true) // little endian
     return view.getInt16(0, true)
   }
+
+  static parseShotData(hexString: string): ShotData | null {
+    try {
+      // Convert hex string to byte array
+      const bytes = this.stringToByteArray(hexString)
+
+      if (bytes.length < 20) {
+        console.log('Invalid shot data length')
+        return null
+      }
+
+      const multiplier = 2.2375
+      const parseInt16 = (offset: number): number => {
+        const buffer = new ArrayBuffer(2)
+        const view = new DataView(buffer)
+        view.setUint8(0, bytes[offset])
+        view.setUint8(1, bytes[offset + 1])
+        return view.getInt16(0, true) // little endian
+      }
+      const parseUint16 = (offset: number): number => {
+        const buffer = new ArrayBuffer(2)
+        const view = new DataView(buffer)
+        view.setUint8(0, bytes[offset])
+        view.setUint8(1, bytes[offset + 1])
+        return view.getUint16(0, true) // little endian
+      }
+
+      // Parse values according to the byte table
+      const clubHeadSpeed = Math.round((parseInt16(0) / 10) * multiplier * 100) / 100 // 68/10 * 2.2375 = 15.22
+      const ballSpeed = Math.round((parseInt16(2) / 10) * multiplier * 100) / 100 // 79/10 * 2.2375 = 17.68
+      const hla = parseInt16(4) / 10 // -30/10 = -3.0
+      const vla = parseInt16(6) / 10 // 266/10 = 26.6
+      const spinAxis = parseInt16(8) / 10 // -56/10 = -5.6
+      const totalSpin = parseUint16(10) // 2044
+
+      // Calculate backspin and sidespin from total spin and spin axis
+      const spinAxisRad = (spinAxis * Math.PI) / 180
+      const backSpin = totalSpin * Math.cos(spinAxisRad)
+      const sideSpin = totalSpin * Math.sin(spinAxisRad)
+
+      return {
+        DeviceID: 'GSPro LM 1.1',
+        Units: 'Yards',
+        ShotNumber: 13,
+        APIversion: '1',
+        BallData: {
+          Speed: ballSpeed,
+          SpinAxis: spinAxis,
+          TotalSpin: totalSpin,
+          BackSpin: parseFloat(backSpin.toFixed(1)),
+          SideSpin: parseFloat(sideSpin.toFixed(1)),
+          HLA: hla,
+          VLA: vla
+        },
+        ClubData: {
+          Speed: clubHeadSpeed
+        },
+        ShotDataOptions: {
+          ContainsBallData: true,
+          ContainsClubData: true,
+          LaunchMonitorIsReady: true,
+          IsHeartBeat: false
+        }
+      }
+    } catch (error) {
+      console.log('Error parsing shot data:', error)
+      return null
+    }
+  }
+
+  static formatShotData(shotData: ShotData): string {
+    return `Device ID: ${shotData.DeviceID}
+Units: ${shotData.Units}
+Shot Number: ${shotData.ShotNumber}
+API Version: ${shotData.APIversion}
+
+Ball Data:
+  Speed: ${shotData.BallData.Speed} mph
+  Spin Axis: ${shotData.BallData.SpinAxis}°
+  Total Spin: ${shotData.BallData.TotalSpin} rpm
+  Back Spin: ${shotData.BallData.BackSpin} rpm
+  Side Spin: ${shotData.BallData.SideSpin} rpm
+  HLA: ${shotData.BallData.HLA}°
+  VLA: ${shotData.BallData.VLA}°
+
+Club Data:
+  Speed: ${shotData.ClubData.Speed} mph
+
+Shot Data Options:
+  Contains Ball Data: ${shotData.ShotDataOptions.ContainsBallData}
+  Contains Club Data: ${shotData.ShotDataOptions.ContainsClubData}
+  Launch Monitor Ready: ${shotData.ShotDataOptions.LaunchMonitorIsReady}
+  Is Heartbeat: ${shotData.ShotDataOptions.IsHeartBeat}`
+  }
 }
 
 export { WriteType, WriteTypeProperties, ByteConversionUtils }
+export type { ShotData }
