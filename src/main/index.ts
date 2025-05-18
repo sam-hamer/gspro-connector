@@ -3,9 +3,14 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { tcpService } from './tcpService'
+import { logger, LogLevel } from '../utils/logger'
 
 let bluetoothPinCallback
 let selectBluetoothCallback
+
+// Initialize logger with default settings
+logger.setEnabled(true)
+logger.setLogLevel(LogLevel.INFO)
 
 function createWindow(): void {
   // Create the browser window.
@@ -43,7 +48,7 @@ function createWindow(): void {
     event.preventDefault()
     selectBluetoothCallback = callback
 
-    console.log('Available Bluetooth devices:', deviceList)
+    logger.info('Available Bluetooth devices:', deviceList)
 
     // Show the device list to the user and let them select
     mainWindow.webContents.send('bluetooth-devices-found', deviceList)
@@ -126,9 +131,6 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
 
