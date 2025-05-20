@@ -9,7 +9,6 @@ import { Progress } from '../components/ui/progress'
 import { Input } from '../components/ui/input'
 import { bluetoothManager } from '../../../utils/bluetooth'
 import { Label } from '../components/ui/label'
-import { logger } from '../../../utils/logger'
 
 export default function LaunchMonitorConnector(): JSX.Element {
   const [isConnected, setIsConnected] = useState(false)
@@ -24,9 +23,9 @@ export default function LaunchMonitorConnector(): JSX.Element {
 
   useEffect(() => {
     // Register Bluetooth pairing request handler
-    logger.info('Setting up Bluetooth pairing request handler')
+    window.electronAPI.logger.info('Setting up Bluetooth pairing request handler')
     const handler = (): void => {
-      logger.info('Bluetooth pairing request received')
+      window.electronAPI.logger.info('Bluetooth pairing request received')
       setShowPairingPrompt(true)
     }
     window.electronAPI.bluetoothPairingRequest(handler)
@@ -36,7 +35,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
     // Listen for devices found
     window.electronAPI.onBluetoothDevicesFound(
       (deviceList: { deviceId: string; deviceName?: string }[]) => {
-        logger.info('Devices found:', deviceList)
+        window.electronAPI.logger.info('Devices found:', deviceList)
         setDevices(deviceList)
         setShowDeviceList(true)
       }
@@ -44,7 +43,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
   }, [])
 
   const handlePairingResponse = (accept: boolean): void => {
-    logger.info('Handling pairing response:', accept)
+    window.electronAPI.logger.info('Handling pairing response:', accept)
     window.electronAPI.bluetoothPairingResponse(accept)
     setShowPairingPrompt(false)
   }
@@ -73,29 +72,29 @@ export default function LaunchMonitorConnector(): JSX.Element {
   }, [isConnected])
 
   const toggleConnection = async (): Promise<void> => {
-    logger.info('toggleConnection :: start')
+    window.electronAPI.logger.info('toggleConnection :: start')
     if (!isConnected) {
       try {
-        logger.info('Attempting to discover devices...')
+        window.electronAPI.logger.info('Attempting to discover devices...')
         await bluetoothManager.discoverDevicesAsync()
-        logger.info('Device discovery initiated')
+        window.electronAPI.logger.info('Device discovery initiated')
       } catch (error) {
-        logger.error('Error during device discovery:', error)
+        window.electronAPI.logger.error('Error during device discovery:', error)
         if (error instanceof Error) {
-          logger.error('Error details:', error.message)
+          window.electronAPI.logger.error('Error details:', error.message)
           if (error.stack) {
-            logger.error('Stack trace:', error.stack)
+            window.electronAPI.logger.error('Stack trace:', error.stack)
           }
         }
         return // Don't set isConnected to true if there was an error
       }
     } else {
       try {
-        logger.info('Attempting to disconnect...')
+        window.electronAPI.logger.info('Attempting to disconnect...')
         await bluetoothManager.disconnectDeviceAsync()
-        logger.info('Device disconnected')
+        window.electronAPI.logger.info('Device disconnected')
       } catch (error) {
-        logger.error('Error disconnecting:', error)
+        window.electronAPI.logger.error('Error disconnecting:', error)
       }
     }
     setIsConnected((prev) => !prev)
@@ -115,7 +114,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
   useEffect(() => {
     // Set up TCP data listener
     window.electronAPI.onTcpData((data) => {
-      logger.info('Received from TCP server:', data)
+      window.electronAPI.logger.info('Received from TCP server:', data)
 
       // Handle connection status messages
       if (
@@ -133,13 +132,13 @@ export default function LaunchMonitorConnector(): JSX.Element {
           case 'error':
             setIsTcpConnected(false)
             if (data.status === 'error' && 'error' in data) {
-              logger.error('TCP connection error:', data.error)
+              window.electronAPI.logger.error('TCP connection error:', data.error)
             }
             break
         }
       } else {
         // Handle regular data messages
-        logger.info('Received data message:', data)
+        window.electronAPI.logger.info('Received data message:', data)
       }
     })
   }, [])
@@ -148,13 +147,13 @@ export default function LaunchMonitorConnector(): JSX.Element {
     try {
       const port = parseInt(tcpPort, 10)
       if (isNaN(port) || port < 1 || port > 65535) {
-        logger.error('Invalid port number')
+        window.electronAPI.logger.error('Invalid port number')
         return
       }
       await window.electronAPI.tcpConnect(tcpHost, port)
       setIsTcpConnected(true)
     } catch (error) {
-      logger.error('Failed to connect to TCP server:', error)
+      window.electronAPI.logger.error('Failed to connect to TCP server:', error)
       setIsTcpConnected(false)
     }
   }
@@ -164,7 +163,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
       await window.electronAPI.tcpDisconnect()
       setIsTcpConnected(false)
     } catch (error) {
-      logger.error('Failed to disconnect from TCP server:', error)
+      window.electronAPI.logger.error('Failed to disconnect from TCP server:', error)
     }
   }
 
@@ -207,7 +206,7 @@ export default function LaunchMonitorConnector(): JSX.Element {
       }
       await window.electronAPI.tcpSend(testShot)
     } catch (error) {
-      logger.error('Failed to send data:', error)
+      window.electronAPI.logger.error('Failed to send data:', error)
     }
   }
 

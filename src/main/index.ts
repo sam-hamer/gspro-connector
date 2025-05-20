@@ -12,8 +12,45 @@ let selectBluetoothCallback
 logger.setEnabled(true)
 logger.setLogLevel(LogLevel.INFO)
 
+// Add IPC handlers for logging settings
+ipcMain.handle('logger:getSettings', () => {
+  return {
+    isEnabled: logger.isEnabled,
+    logLevel: logger.getLogLevel()
+  }
+})
+
+ipcMain.handle('logger:setEnabled', (_, enabled: boolean) => {
+  logger.setEnabled(enabled)
+})
+
+ipcMain.handle('logger:setLogLevel', (_, level: LogLevel) => {
+  console.log('Setting log level to:', level)
+  logger.setLogLevel(level)
+})
+
+// Handle logs from renderer process
+ipcMain.on('logger:log', (_, level: LogLevel, ...args: unknown[]) => {
+  switch (level) {
+    case 'DEBUG':
+      logger.debug(...args)
+      break
+    case 'INFO':
+      logger.info(...args)
+      break
+    case 'WARN':
+      logger.warn(...args)
+      break
+    case 'ERROR':
+      logger.error(...args)
+      break
+  }
+})
+
 function createWindow(): void {
   // Create the browser window.
+  const preloadPath = join(__dirname, '../preload/index.js')
+
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -21,8 +58,10 @@ function createWindow(): void {
     autoHideMenuBar: true,
     icon,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      preload: preloadPath,
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 

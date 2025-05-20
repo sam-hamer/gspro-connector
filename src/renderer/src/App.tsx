@@ -8,8 +8,8 @@ import SettingsPage from './app/settings/page'
 function App(): JSX.Element {
   useEffect(() => {
     const initTheme = async (): Promise<void> => {
-      await window.darkMode.system()
-      const isDark = await window.darkMode.isDark()
+      await window.electronAPI.darkMode.system()
+      const isDark = await window.electronAPI.darkMode.isDark()
       document.documentElement.classList.remove('light', 'dark')
       document.documentElement.classList.add(isDark ? 'dark' : 'light')
     }
