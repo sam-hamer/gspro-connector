@@ -1,6 +1,6 @@
 import { ByteConversionUtils } from './byteConversionUtils'
 import Encryption from './encryption'
-
+import Logger from './logger'
 class WebApiClient {
   private _btEncryption: Encryption
   private _byteConversionUtils: typeof ByteConversionUtils
@@ -34,11 +34,11 @@ class WebApiClient {
   }
 
   async sendRequestAsync(userId: string): Promise<ApiResponse | null> {
-    console.log('Sending request to Web API...')
+    Logger.info('Sending request to Web API...')
 
     try {
       const requestUri = `${this._baseUrl}${userId}`
-      console.log('user id:', userId, 'secret:', this._secretValue)
+      Logger.debug('user id:', userId, 'secret:', this._secretValue)
       const response = await fetch(requestUri, {
         headers: {
           Secret: this._secretValue ?? ''
@@ -49,9 +49,9 @@ class WebApiClient {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      console.log('Web API request successful.')
+      Logger.info('Web API request successful.')
       const content = await response.json()
-      console.log('Server Response:', content)
+      Logger.debug('Server Response:', content)
 
       return {
         success: content.success,
@@ -59,7 +59,7 @@ class WebApiClient {
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.log(`Error: ${error.message}`)
+        Logger.error(`Error: ${error.message}`)
       }
       return null
     }

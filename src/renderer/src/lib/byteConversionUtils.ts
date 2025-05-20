@@ -1,3 +1,4 @@
+import Logger from './logger'
 // Utility functions and constants
 const WriteType = {
   WithResponse: 2,
@@ -23,7 +24,7 @@ class WriteTypeProperties {
       case WriteType.Signed:
         return new WriteTypeProperties(WriteType.Signed, 64)
       default:
-        console.log('Invalid WriteType')
+        Logger.debug('Invalid WriteType')
         return null
     }
   }
@@ -63,7 +64,7 @@ class ByteConversionUtils {
 
   static arrayByteToInt(byteArray: number[]): number[] {
     if (!byteArray) {
-      console.log('arrayByteToInt received null byteArray')
+      Logger.debug('arrayByteToInt received null byteArray')
       return []
     }
 
@@ -98,7 +99,7 @@ class ByteConversionUtils {
 
   static byteArrayToInt(byteArray: number[], littleEndian: boolean): number {
     if (!byteArray || byteArray.length !== 4) {
-      console.log('byteArray must be exactly 4 bytes long')
+      Logger.debug('byteArray must be exactly 4 bytes long')
       return 0
     }
 
@@ -129,7 +130,7 @@ class ByteConversionUtils {
       return bytes
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.log(error.message)
+        Logger.debug(error.message)
       }
       return []
     }
@@ -148,7 +149,7 @@ class ByteConversionUtils {
 
   static hexStringToByteArray(hex: string): number[] {
     if (hex.length % 2 !== 0) {
-      console.log('The hexadecimal string must have an even number of characters.')
+      Logger.debug('The hexadecimal string must have an even number of characters.')
     }
 
     const bytes: number[] = []
@@ -180,7 +181,7 @@ class ByteConversionUtils {
       const bytes = this.stringToByteArray(hexString)
 
       if (bytes.length < 20) {
-        console.log('Invalid shot data length')
+        Logger.debug('Invalid shot data length')
         return null
       }
 
@@ -238,7 +239,7 @@ class ByteConversionUtils {
         }
       }
     } catch (error) {
-      console.log('Error parsing shot data:', error)
+      Logger.debug('Error parsing shot data:', error)
       return null
     }
   }

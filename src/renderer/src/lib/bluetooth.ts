@@ -120,7 +120,7 @@ class BluetoothManager {
         Logger.debug('Device connection failed - bluetoothDevice is null')
       }
     } catch (error) {
-      console.error('Error in discoverDevicesAsync:', error)
+      Logger.error('Error in discoverDevicesAsync:', error)
       throw error // Re-throw to ensure error propagates
     }
   }
@@ -186,7 +186,7 @@ class BluetoothManager {
 
       Logger.debug('Device disconnected and state cleaned up')
     } catch (error) {
-      console.error('Error during disconnect:', error)
+      Logger.error('Error during disconnect:', error)
       // Still try to clean up state even if there was an error
       this.bluetoothDevice = null
       this.primaryService = null
@@ -213,9 +213,9 @@ class BluetoothManager {
       Logger.debug('Bluetooth Device Setup Completed')
     } catch (error) {
       if (error instanceof Error) {
-        console.error(`Error connecting to device: ${error.message}`)
+        Logger.error(`Error connecting to device: ${error.message}`)
       } else {
-        console.error(`Error connecting to device: ${String(error)}`)
+        Logger.error(`Error connecting to device: ${String(error)}`)
       }
     }
   }
@@ -286,9 +286,9 @@ class BluetoothManager {
       return true
     } catch (error) {
       if (error instanceof Error) {
-        console.error('Error subscribing to characteristics:', error.message)
+        Logger.error('Error subscribing to characteristics:', error.message)
       } else {
-        console.error('Error subscribing to characteristics:', String(error))
+        Logger.error('Error subscribing to characteristics:', String(error))
       }
       return false
     }
@@ -395,14 +395,14 @@ class BluetoothManager {
             await window.electronAPI.tcpSend(shotData)
             Logger.debug('Shot data sent to GSPro successfully')
           } catch (error) {
-            console.error('Error sending shot data to GSPro:', error)
+            Logger.error('Error sending shot data to GSPro:', error)
           }
         } else {
           Logger.debug('Failed to parse shot data')
         }
       }
     } catch (error) {
-      console.error('Error handling characteristic value change:', error)
+      Logger.error('Error handling characteristic value change:', error)
     }
   }
 
@@ -463,9 +463,9 @@ class BluetoothManager {
       return status
     } catch (error) {
       if (error instanceof Error) {
-        console.error('Error sending device auth request:', error.message)
+        Logger.error('Error sending device auth request:', error.message)
       } else {
-        console.error('Error sending device auth request:', String(error))
+        Logger.error('Error sending device auth request:', String(error))
       }
       return false
     }
@@ -486,9 +486,9 @@ class BluetoothManager {
       return true
     } catch (error) {
       if (error instanceof Error) {
-        console.error('Error writing value to characteristic:', error.message)
+        Logger.error('Error writing value to characteristic:', error.message)
       } else {
-        console.error('Error writing value to characteristic:', String(error))
+        Logger.error('Error writing value to characteristic:', String(error))
       }
       return false
     }
@@ -506,9 +506,9 @@ class BluetoothManager {
       return status
     } catch (error) {
       if (error instanceof Error) {
-        console.error('Error writing command:', error.message)
+        Logger.error('Error writing command:', error.message)
       } else {
-        console.error('Error writing command:', String(error))
+        Logger.error('Error writing command:', String(error))
       }
       return false
     }
@@ -530,9 +530,9 @@ class BluetoothManager {
       return status
     } catch (error) {
       if (error instanceof Error) {
-        console.error('Error writing config:', error.message)
+        Logger.error('Error writing config:', error.message)
       } else {
-        console.error('Error writing config:', String(error))
+        Logger.error('Error writing config:', String(error))
       }
       return false
     }
@@ -556,9 +556,9 @@ class BluetoothManager {
       return true
     } catch (error) {
       if (error instanceof Error) {
-        console.error(`Error writing value to characteristic ${characteristicUuid}:`, error.message)
+        Logger.error(`Error writing value to characteristic ${characteristicUuid}:`, error.message)
       } else {
-        console.error(`Error writing value to characteristic ${characteristicUuid}:`, String(error))
+        Logger.error(`Error writing value to characteristic ${characteristicUuid}:`, String(error))
       }
       return false
     }
