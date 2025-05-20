@@ -3,7 +3,8 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { tcpService } from './tcpService'
-import { logger, LogLevel } from '../utils/logger'
+import { logger } from './utils/logger'
+import { LogLevel } from '../utils/types'
 
 let bluetoothPinCallback
 let selectBluetoothCallback
@@ -25,7 +26,6 @@ ipcMain.handle('logger:setEnabled', (_, enabled: boolean) => {
 })
 
 ipcMain.handle('logger:setLogLevel', (_, level: LogLevel) => {
-  console.log('Setting log level to:', level)
   logger.setLogLevel(level)
 })
 

@@ -2,6 +2,7 @@ import { ByteConversionUtils } from './byteConversionUtils'
 import { WebApiClient } from './webApi'
 import Encryption from './encryption'
 import { BluetoothDevice } from 'electron'
+import Logger from './logger'
 
 declare global {
   interface Navigator {
@@ -99,24 +100,24 @@ class BluetoothManager {
 
   async discoverDevicesAsync(): Promise<void> {
     try {
-      console.log('discoverDevicesAsync :: Starting device discovery')
-      console.log('Requesting Bluetooth device with filters...')
+      Logger.debug('discoverDevicesAsync :: Starting device discovery')
+      Logger.debug('Requesting Bluetooth device with filters...')
       const device = await navigator.bluetooth.requestDevice({
         filters: [{ namePrefix: 'MLM2-' }, { namePrefix: 'BlueZ ' }, { namePrefix: 'MLM2_BT_' }],
         optionalServices: [SERVICE_UUID]
       })
 
-      console.log('Device selected:', device.name)
+      Logger.debug('Device selected:', device.name)
 
-      console.log('Attempting to connect to device...')
+      Logger.debug('Attempting to connect to device...')
       await this.connectToDeviceAsync(device)
 
       if (this.bluetoothDevice) {
-        console.log('Device successfully connected and initialized')
-        console.log('Device discovery initiated')
+        Logger.debug('Device successfully connected and initialized')
+        Logger.debug('Device discovery initiated')
         return
       } else {
-        console.log('Device connection failed - bluetoothDevice is null')
+        Logger.debug('Device connection failed - bluetoothDevice is null')
       }
     } catch (error) {
       console.error('Error in discoverDevicesAsync:', error)
@@ -125,46 +126,46 @@ class BluetoothManager {
   }
 
   async armDeviceAsync(): Promise<void> {
-    console.log('armDeviceAsync :: start')
+    Logger.debug('armDeviceAsync :: start')
 
     if (!this.bluetoothDevice) {
-      console.log('Device not connected')
+      Logger.debug('Device not connected')
       return
     }
 
     const armData = new Uint8Array([1, 13, 0, 1, 0, 0, 0])
     await this.writeCommand(armData)
 
-    console.log('Arm command sent')
+    Logger.debug('Arm command sent')
   }
 
   async disarmDeviceAsync(): Promise<void> {
-    console.log('disarmDeviceAsync :: start')
+    Logger.debug('disarmDeviceAsync :: start')
 
     if (!this.bluetoothDevice) {
-      console.log('Device not connected')
+      Logger.debug('Device not connected')
       return
     }
 
     const disarmData = new Uint8Array([1, 13, 0, 0, 0, 0, 0])
     await this.writeCommand(disarmData)
 
-    console.log('Disarm command sent')
+    Logger.debug('Disarm command sent')
   }
 
   async disconnectDeviceAsync(): Promise<void> {
-    console.log('disconnectDeviceAsync :: start')
+    Logger.debug('disconnectDeviceAsync :: start')
 
     try {
       // Stop the heartbeat timer
       if (this.heartbeatTimer) {
-        console.log('Clearing heartbeat timer')
+        Logger.debug('Clearing heartbeat timer')
         clearInterval(this.heartbeatTimer)
         this.heartbeatTimer = null
       }
 
       if (!this.bluetoothDevice) {
-        console.log('Device not connected')
+        Logger.debug('Device not connected')
         return
       }
 
@@ -183,7 +184,7 @@ class BluetoothManager {
       this.userToken = ''
       this.lastHeartbeatReceived = 0
 
-      console.log('Device disconnected and state cleaned up')
+      Logger.debug('Device disconnected and state cleaned up')
     } catch (error) {
       console.error('Error during disconnect:', error)
       // Still try to clean up state even if there was an error
@@ -201,15 +202,15 @@ class BluetoothManager {
         throw new Error('Bluetooth GATT not available')
       }
       await device.gatt.connect()
-      console.log('Device Connected')
+      Logger.debug('Device Connected')
 
       this.primaryService = await device.gatt.getPrimaryService(SERVICE_UUID)
-      console.log('Primary Service Obtained')
+      Logger.debug('Primary Service Obtained')
 
       this.bluetoothDevice = device
       await this.initializeWebApiClient()
       await this.setupBluetoothDevice()
-      console.log('Bluetooth Device Setup Completed')
+      Logger.debug('Bluetooth Device Setup Completed')
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error connecting to device: ${error.message}`)
@@ -224,10 +225,10 @@ class BluetoothManager {
 
     const authStatus = await this.sendDeviceAuthRequest()
     if (authStatus) {
-      console.log('Device auth request sent successfully')
+      Logger.debug('Device auth request sent successfully')
       this.startHeartbeat()
     } else {
-      console.log('Error sending device auth request')
+      Logger.debug('Error sending device auth request')
     }
   }
 
@@ -251,14 +252,14 @@ class BluetoothManager {
       //     await this.primaryService.getCharacteristic(
       //       HEARTBEAT_CHARACTERISTIC_UUID,
       //     );
-      //   console.log("got heartbeat characteristic");
+      //   Logger.debug("got heartbeat characteristic");
       //   if (heartbeatCharacteristic == null) return false;
       //   heartbeatCharacteristic.addEventListener(
       //     "characteristicvaluechanged",
       //     this.handleCharacteristicValueChanged.bind(this),
       //   );
       //   await heartbeatCharacteristic.startNotifications();
-      //   console.log("Subscribed to heartbeat characteristic");
+      //   Logger.debug("Subscribed to heartbeat characteristic");
 
       const writeResponseCharacteristic = await this.primaryService.getCharacteristic(
         WRITE_RESPONSE_CHARACTERISTIC_UUID
@@ -279,9 +280,9 @@ class BluetoothManager {
         this.handleCharacteristicValueChanged.bind(this)
       )
       await measurementCharacteristic.startNotifications()
-      console.log('Subscribed to measurement characteristic')
+      Logger.debug('Subscribed to measurement characteristic')
 
-      console.log('Successfully Subscribed to all notifications')
+      Logger.debug('Successfully Subscribed to all notifications')
       return true
     } catch (error) {
       if (error instanceof Error) {
@@ -298,7 +299,7 @@ class BluetoothManager {
       const value = new Uint8Array(event.target.value.buffer)
 
       const senderUuid = event.target.uuid
-      console.log('notification received for: ', uuidMap.get(senderUuid), event)
+      Logger.debug('notification received for: ', uuidMap.get(senderUuid), event)
 
       if (senderUuid === WRITE_RESPONSE_CHARACTERISTIC_UUID) {
         if (value.length >= 2) {
@@ -310,12 +311,12 @@ class BluetoothManager {
             const byteArray = value.slice(2)
 
             if (byte2 === 2) {
-              console.log('auth requested: running InitialParams')
+              Logger.debug('auth requested: running InitialParams')
 
               if (byte3 !== 0 || value.length < 4) {
-                console.log('auth failed, returning')
+                Logger.debug('auth failed, returning')
                 if (byte3 === 1) {
-                  console.log('token expired')
+                  Logger.debug('token expired')
                 }
                 return
               }
@@ -331,7 +332,7 @@ class BluetoothManager {
 
               if (response && response.success && response.user.token) {
                 const initialParameters = this.getInitialParameters(response.user.token)
-                console.log('sending config 1')
+                Logger.debug('sending config 1')
                 await this.writeConfig(initialParameters)
                 // Send the configuration twice with a delay
 
@@ -339,7 +340,7 @@ class BluetoothManager {
                   await this.writeConfig(initialParameters)
                 }, 200)
                 setTimeout(async () => {
-                  console.log('sending config 2')
+                  Logger.debug('sending config 2')
                 }, 500)
               }
               return
@@ -347,57 +348,57 @@ class BluetoothManager {
           }
         }
       } else if (senderUuid === EVENTS_CHARACTERISTIC_UUID && this.isDeviceSetup) {
-        console.log('events characteristic value changed:', value)
+        Logger.debug('events characteristic value changed:', value)
         const decrypted = await this.encryption.decrypt(value)
         if (!decrypted) return
 
         switch (decrypted[0]) {
           case 0:
-            console.log('Connected, shot happened')
+            Logger.debug('Connected, shot happened')
             break
           case 1:
-            console.log('Connected, processing shot')
+            Logger.debug('Connected, processing shot')
             break
           case 2:
-            console.log('Connected, ready')
+            Logger.debug('Connected, ready')
             break
           case 3:
             this.batteryLevel = decrypted[1]
-            console.log('Connected, battery level:', this.batteryLevel)
+            Logger.debug('Connected, battery level:', this.batteryLevel)
             break
           case 5:
             if (decrypted[1] === 0) {
-              console.log('Connected, alarm reset')
+              Logger.debug('Connected, alarm reset')
             } else if (decrypted[1] === 1) {
-              console.log('Connected, disarmed')
+              Logger.debug('Connected, disarmed')
             }
             break
           default:
-            console.log('unknown event type')
+            Logger.debug('unknown event type')
             break
         }
       } else if (senderUuid === MEASUREMENT_CHARACTERISTIC_UUID && this.isDeviceSetup) {
-        console.log('Measurement characteristic value changed:', value)
+        Logger.debug('Measurement characteristic value changed:', value)
         const decrypted = await this.encryption.decrypt(value)
         if (!decrypted) return
 
         // Convert the decrypted bytes to a hex string
         const hexString = ByteConversionUtils.byteArrayToHexString(Array.from(decrypted))
-        console.log('Decrypted hex string:', hexString)
+        Logger.debug('Decrypted hex string:', hexString)
 
         // Parse the shot data
         const shotData = ByteConversionUtils.parseShotData(hexString)
         if (shotData) {
-          console.log('Parsed shot data:', shotData)
+          Logger.debug('Parsed shot data:', shotData)
           // Send shot data to GSPro
           try {
             await window.electronAPI.tcpSend(shotData)
-            console.log('Shot data sent to GSPro successfully')
+            Logger.debug('Shot data sent to GSPro successfully')
           } catch (error) {
             console.error('Error sending shot data to GSPro:', error)
           }
         } else {
-          console.log('Failed to parse shot data')
+          Logger.debug('Failed to parse shot data')
         }
       }
     } catch (error) {
@@ -457,7 +458,7 @@ class BluetoothManager {
 
       // Call the writeValue function to send the initial connection request with the encryption key
       const status = await this.writeValue(SERVICE_UUID, AUTH_REQUEST_CHARACTERISTIC_UUID, bArr)
-      console.log('sendDeviceAuthRequest :: writeValue status:', status)
+      Logger.debug('sendDeviceAuthRequest :: writeValue status:', status)
 
       return status
     } catch (error) {
@@ -481,7 +482,7 @@ class BluetoothManager {
       }
       const characteristic = await this.primaryService.getCharacteristic(characteristicUuid)
       await characteristic.writeValue(value)
-      console.log('Value written to characteristic: ', uuidMap.get(characteristicUuid))
+      Logger.debug('Value written to characteristic: ', uuidMap.get(characteristicUuid))
       return true
     } catch (error) {
       if (error instanceof Error) {
@@ -495,7 +496,7 @@ class BluetoothManager {
 
   async writeCommand(data: Uint8Array): Promise<boolean> {
     try {
-      console.log('writeCommand :: data:', data)
+      Logger.debug('writeCommand :: data:', data)
       // Encrypt the data using the Encryption instance
       const encryptedData = await this.encryption.encrypt(data)
 
@@ -515,7 +516,7 @@ class BluetoothManager {
 
   async writeConfig(data: Uint8Array): Promise<boolean> {
     try {
-      console.log('writeConfig :: data:', data)
+      Logger.debug('writeConfig :: data:', data)
       // Encrypt the data using the Encryption instance
       const encryptedData = await this.encryption.encrypt(data)
 
@@ -546,11 +547,11 @@ class BluetoothManager {
       if (!this.primaryService) {
         throw new Error('Primary service not available')
       }
-      //   console.log('writeCharacteristic :: characteristicUUID:', uuidMap.get(characteristicUuid))
+      //   Logger.debug('writeCharacteristic :: characteristicUUID:', uuidMap.get(characteristicUuid))
       const characteristic = await this.primaryService.getCharacteristic(characteristicUuid)
       await characteristic.writeValueWithoutResponse(data)
 
-      //   console.log('writeCharacteristic :: characteristic.writeValueWithoutResponse')
+      //   Logger.debug('writeCharacteristic :: characteristic.writeValueWithoutResponse')
 
       return true
     } catch (error) {
@@ -564,7 +565,7 @@ class BluetoothManager {
   }
 
   startHeartbeat(): void {
-    console.log('startHeartbeat :: start')
+    Logger.debug('startHeartbeat :: start')
 
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer)
@@ -586,7 +587,7 @@ class BluetoothManager {
 
     const currentTimeInSeconds = Math.floor(Date.now() / 1000)
     if (this.lastHeartbeatReceived < currentTimeInSeconds - 120) {
-      console.log('Heartbeat not received for 120 seconds, resubscribing...')
+      Logger.debug('Heartbeat not received for 120 seconds, resubscribing...')
       this.lastHeartbeatReceived = currentTimeInSeconds + 120
       await this.subscribeToCharacteristicsAsync()
     }
@@ -594,7 +595,7 @@ class BluetoothManager {
     const heartbeatData = new Uint8Array([0x01])
     await this.writeCharacteristic(SERVICE_UUID, HEARTBEAT_CHARACTERISTIC_UUID, heartbeatData)
 
-    console.log('Heartbeat signal sent.')
+    Logger.debug('Heartbeat signal sent.')
   }
 }
 

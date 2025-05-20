@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '../../components/ui/select'
-import { LogLevel } from '../../../../utils/logger'
+import { LogLevel } from '../../../../utils/types'
 
 export default function Settings(): JSX.Element {
   const [isLoggingEnabled, setIsLoggingEnabled] = useState(true)

@@ -1,22 +1,22 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { LogLevel } from '../utils/logger'
+import { LogLevel } from '../utils/types'
 
-console.log('Preload script is running')
+// Use IPC to log to main process
+const logToMain = (level: LogLevel, ...args: unknown[]): void => {
+  ipcRenderer.send('logger:log', level, ...args)
+}
 
 // Custom APIs for renderer
 const api = {
-  // Logger settings
+  // Logger functions
   logger: {
     getLoggerSettings: (): Promise<{ isEnabled: boolean; logLevel: LogLevel }> => {
-      console.log('getLoggerSettings called')
       return ipcRenderer.invoke('logger:getSettings')
     },
     setLoggerEnabled: (enabled: boolean): Promise<void> => {
-      console.log('setLoggerEnabled called with:', enabled)
       return ipcRenderer.invoke('logger:setEnabled', enabled)
     },
     setLoggerLevel: (level: LogLevel): Promise<void> => {
-      console.log('setLoggerLevel called with:', level)
       return ipcRenderer.invoke('logger:setLogLevel', level)
     },
     debug: (...args: unknown[]): void => {
@@ -79,13 +79,11 @@ const api = {
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    console.log('Exposing electronAPI to window')
     contextBridge.exposeInMainWorld('electronAPI', api)
   } catch (error) {
-    console.error('Error exposing electronAPI:', error)
+    logToMain(LogLevel.ERROR, 'Error exposing electronAPI:', error)
   }
 } else {
-  console.log('Context isolation disabled, adding electronAPI directly to window')
   // @ts-ignore (define in dts)
   window.electronAPI = api
 }

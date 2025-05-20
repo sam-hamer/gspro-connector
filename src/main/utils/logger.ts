@@ -1,9 +1,4 @@
-export enum LogLevel {
-  DEBUG = 'DEBUG',
-  INFO = 'INFO',
-  WARN = 'WARN',
-  ERROR = 'ERROR'
-}
+import { LogLevel } from '../../utils/types'
 
 class Logger {
   private static instance: Logger

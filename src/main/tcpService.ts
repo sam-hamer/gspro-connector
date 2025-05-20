@@ -1,4 +1,5 @@
 import { Socket } from 'net'
+import { logger } from './utils/logger'
 
 export class TcpService {
   private socket: Socket | null = null
@@ -9,9 +10,9 @@ export class TcpService {
       this.socket = new Socket()
       this.socket.connect(port, host, () => {
         this.isConnected = true
-        console.log('TCP connection established')
+        logger.info('TCP connection established')
         if (!global.mainWindow) {
-          console.error('Main window reference not available')
+          logger.error('Main window reference not available')
           return
         }
         global.mainWindow.webContents.send('tcp:data', {
@@ -23,9 +24,9 @@ export class TcpService {
 
       this.socket.on('error', (error) => {
         this.isConnected = false
-        console.log('TCP connection error:', error.message)
+        logger.error('TCP connection error:', error.message)
         if (!global.mainWindow) {
-          console.error('Main window reference not available')
+          logger.error('Main window reference not available')
           return
         }
         global.mainWindow.webContents.send('tcp:data', {
@@ -38,9 +39,9 @@ export class TcpService {
 
       this.socket.on('close', () => {
         this.isConnected = false
-        console.log('TCP connection closed')
+        logger.info('TCP connection closed')
         if (!global.mainWindow) {
-          console.error('Main window reference not available')
+          logger.error('Main window reference not available')
           return
         }
         global.mainWindow.webContents.send('tcp:data', {
@@ -53,14 +54,14 @@ export class TcpService {
         try {
           const jsonData = JSON.parse(data.toString())
           // Send received data back to renderer
-          console.log('Received data:', jsonData)
+          logger.info('Received data:', jsonData)
           if (!global.mainWindow) {
-            console.error('Main window reference not available')
+            logger.error('Main window reference not available')
             return
           }
           global.mainWindow.webContents.send('tcp:data', jsonData)
         } catch (error) {
-          console.error('Error parsing TCP data:', error)
+          logger.error('Error parsing TCP data:', error)
         }
       })
     })
@@ -81,10 +82,10 @@ export class TcpService {
 
     return new Promise((resolve) => {
       const jsonString = JSON.stringify(data)
-      console.log('Sending data:', jsonString)
+      logger.info('Sending data:', jsonString)
       this.socket!.write(jsonString + '\n', (error) => {
         if (error) {
-          console.error('Error sending TCP data:', error)
+          logger.error('Error sending TCP data:', error)
           resolve(false)
         } else {
           resolve(true)
