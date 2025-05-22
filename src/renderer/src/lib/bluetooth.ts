@@ -457,7 +457,7 @@ class BluetoothManager {
       bArr.set(keyBytes, intToByteArray.length + encryptionTypeBytes.length)
 
       // Call the writeValue function to send the initial connection request with the encryption key
-      const status = await this.writeValue(SERVICE_UUID, AUTH_REQUEST_CHARACTERISTIC_UUID, bArr)
+      const status = await this.writeValue(AUTH_REQUEST_CHARACTERISTIC_UUID, bArr)
       Logger.debug('sendDeviceAuthRequest :: writeValue status:', status)
 
       return status
@@ -471,11 +471,7 @@ class BluetoothManager {
     }
   }
 
-  async writeValue(
-    serviceUuid: string,
-    characteristicUuid: string,
-    value: Uint8Array
-  ): Promise<boolean> {
+  async writeValue(characteristicUuid: string, value: Uint8Array): Promise<boolean> {
     try {
       if (!this.primaryService) {
         throw new Error('Primary service not available')
@@ -501,7 +497,7 @@ class BluetoothManager {
       const encryptedData = await this.encryption.encrypt(data)
 
       // Write the encrypted data to the COMMAND_CHARACTERISTIC_UUID characteristic
-      const status = await this.writeValue(SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, encryptedData)
+      const status = await this.writeValue(COMMAND_CHARACTERISTIC_UUID, encryptedData)
 
       return status
     } catch (error) {
@@ -521,11 +517,7 @@ class BluetoothManager {
       const encryptedData = await this.encryption.encrypt(data)
 
       // Write the encrypted data to the CONFIGURE_CHARACTERISTIC_UUID characteristic
-      const status = await this.writeValue(
-        SERVICE_UUID,
-        CONFIGURE_CHARACTERISTIC_UUID,
-        encryptedData
-      )
+      const status = await this.writeValue(CONFIGURE_CHARACTERISTIC_UUID, encryptedData)
 
       return status
     } catch (error) {
@@ -538,11 +530,7 @@ class BluetoothManager {
     }
   }
 
-  async writeCharacteristic(
-    serviceUuid: string,
-    characteristicUuid: string,
-    data: Uint8Array
-  ): Promise<boolean> {
+  async writeCharacteristic(characteristicUuid: string, data: Uint8Array): Promise<boolean> {
     try {
       if (!this.primaryService) {
         throw new Error('Primary service not available')
@@ -593,7 +581,7 @@ class BluetoothManager {
     }
 
     const heartbeatData = new Uint8Array([0x01])
-    await this.writeCharacteristic(SERVICE_UUID, HEARTBEAT_CHARACTERISTIC_UUID, heartbeatData)
+    await this.writeCharacteristic(HEARTBEAT_CHARACTERISTIC_UUID, heartbeatData)
 
     Logger.debug('Heartbeat signal sent.')
   }
