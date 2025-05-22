@@ -10,12 +10,12 @@ export function ThemeToggle(): JSX.Element {
 
   useEffect(() => {
     // Initialize the state
-    window.darkMode.isDark().then(setIsDarkMode)
+    window.electronAPI.darkMode.isDark().then(setIsDarkMode)
   }, [])
 
   const toggleTheme = async (): Promise<void> => {
-    await window.darkMode.toggle()
-    const newIsDark = await window.darkMode.isDark()
+    await window.electronAPI.darkMode.toggle()
+    const newIsDark = await window.electronAPI.darkMode.isDark()
     setIsDarkMode(newIsDark)
     document.documentElement.classList.remove('light', 'dark')
     document.documentElement.classList.add(newIsDark ? 'dark' : 'light')
