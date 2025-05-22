@@ -1,46 +1,89 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { LogLevel } from '../utils/types'
+
+// Use IPC to log to main process
+const logToMain = (level: LogLevel, ...args: unknown[]): void => {
+  ipcRenderer.send('logger:log', level, ...args)
+}
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  // Logger functions
+  logger: {
+    getLoggerSettings: (): Promise<{ isEnabled: boolean; logLevel: LogLevel }> => {
+      return ipcRenderer.invoke('logger:getSettings')
+    },
+    setLoggerEnabled: (enabled: boolean): Promise<void> => {
+      return ipcRenderer.invoke('logger:setEnabled', enabled)
+    },
+    setLoggerLevel: (level: LogLevel): Promise<void> => {
+      return ipcRenderer.invoke('logger:setLogLevel', level)
+    },
+    debug: (...args: unknown[]): void => {
+      ipcRenderer.send('logger:log', 'DEBUG', ...args)
+    },
+    info: (...args: unknown[]): void => {
+      ipcRenderer.send('logger:log', 'INFO', ...args)
+    },
+    warn: (...args: unknown[]): void => {
+      ipcRenderer.send('logger:log', 'WARN', ...args)
+    },
+    error: (...args: unknown[]): void => {
+      ipcRenderer.send('logger:log', 'ERROR', ...args)
+    }
+  },
+
+  // Dark mode
+  darkMode: {
+    toggle: (): Promise<boolean> => ipcRenderer.invoke('dark-mode:toggle'),
+    system: (): Promise<void> => ipcRenderer.invoke('dark-mode:system'),
+    isDark: (): Promise<boolean> => ipcRenderer.invoke('dark-mode:isDark')
+  },
+
+  // Bluetooth functions
+  bluetoothPairingRequest: (callback: () => void): (() => void) => {
+    const handler = (): void => callback()
+    ipcRenderer.on('bluetooth-pairing-request', handler)
+    return () => ipcRenderer.removeListener('bluetooth-pairing-request', handler)
+  },
+  bluetoothPairingResponse: (response: boolean): void =>
+    ipcRenderer.send('bluetooth-pairing-response', response),
+  cancelBluetoothRequest: (): void => ipcRenderer.send('cancel-bluetooth-request'),
+  onBluetoothDevicesFound: (
+    callback: (deviceList: Array<{ deviceId: string; deviceName?: string }>) => void
+  ): (() => void) => {
+    const handler = (
+      _: unknown,
+      deviceList: Array<{ deviceId: string; deviceName?: string }>
+    ): void => callback(deviceList)
+    ipcRenderer.on('bluetooth-devices-found', handler)
+    return () => ipcRenderer.removeListener('bluetooth-devices-found', handler)
+  },
+  selectBluetoothDevice: (deviceId: string): void =>
+    ipcRenderer.send('select-bluetooth-device', deviceId),
+
+  // TCP functions
+  tcpConnect: (host: string, port: number): Promise<void> =>
+    ipcRenderer.invoke('tcp:connect', host, port),
+  tcpDisconnect: (): Promise<void> => ipcRenderer.invoke('tcp:disconnect'),
+  tcpSend: (data: unknown): Promise<void> => ipcRenderer.invoke('tcp:send', data),
+  onTcpData: (callback: (data: unknown) => void): (() => void) => {
+    const handler = (_: unknown, data: unknown): void => callback(data)
+    ipcRenderer.on('tcp:data', handler)
+    return () => ipcRenderer.removeListener('tcp:data', handler)
+  }
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('darkMode', {
-      toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
-      system: () => ipcRenderer.invoke('dark-mode:system'),
-      isDark: () => ipcRenderer.invoke('dark-mode:isDark')
-    })
-    contextBridge.exposeInMainWorld('electronAPI', {
-      bluetoothPairingRequest: (callback) =>
-        ipcRenderer.on('bluetooth-pairing-request', () => callback()),
-      bluetoothPairingResponse: (response) =>
-        ipcRenderer.send('bluetooth-pairing-response', response),
-      cancelBluetoothRequest: () => ipcRenderer.send('cancel-bluetooth-request'),
-      onBluetoothDevicesFound: (callback) =>
-        ipcRenderer.on('bluetooth-devices-found', (_, deviceList) => callback(deviceList)),
-      selectBluetoothDevice: (deviceId) => ipcRenderer.send('select-bluetooth-device', deviceId),
-      // TCP functions
-      tcpConnect: (host: string, port: number) => ipcRenderer.invoke('tcp:connect', host, port),
-      tcpDisconnect: () => ipcRenderer.invoke('tcp:disconnect'),
-      tcpSend: (data: unknown) => ipcRenderer.invoke('tcp:send', data),
-      onTcpData: (callback: (data: unknown) => void) => {
-        ipcRenderer.on('tcp:data', (_, data) => {
-          callback(data)
-        })
-      }
-    })
+    contextBridge.exposeInMainWorld('electronAPI', api)
   } catch (error) {
-    console.error(error)
+    logToMain(LogLevel.ERROR, 'Error exposing electronAPI:', error)
   }
 } else {
   // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
+  window.electronAPI = api
 }

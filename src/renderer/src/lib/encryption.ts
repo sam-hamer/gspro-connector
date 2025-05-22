@@ -1,3 +1,4 @@
+import Logger from './logger'
 class Encryption {
   private _ivParameter: Uint8Array
   private _encryptionKey: Uint8Array
@@ -23,7 +24,7 @@ class Encryption {
   async encrypt(input: Uint8Array): Promise<Uint8Array> {
     try {
       if (!input) {
-        console.log('Encrypt received null input')
+        Logger.error('Encrypt received null input')
         return new Uint8Array([])
       }
 
@@ -43,7 +44,7 @@ class Encryption {
 
       return new Uint8Array(encrypted)
     } catch (error) {
-      console.log(
+      Logger.error(
         `Error encrypting data: ${error instanceof Error ? error.message : String(error)}`
       )
       return new Uint8Array([])
@@ -70,7 +71,7 @@ class Encryption {
 
       return new Uint8Array(decrypted)
     } catch (error) {
-      console.log(
+      Logger.error(
         `Error decrypting data: ${error instanceof Error ? error.message : String(error)}`
       )
       return null
@@ -95,7 +96,7 @@ class Encryption {
 
       return new Uint8Array(decrypted)
     } catch (error) {
-      console.log(
+      Logger.error(
         `Error decrypting data: ${error instanceof Error ? error.message : String(error)}`
       )
       return new Uint8Array([])
@@ -120,7 +121,7 @@ class Encryption {
 
       return new Uint8Array(encrypted)
     } catch (error) {
-      console.log(
+      Logger.error(
         `Error encrypting data: ${error instanceof Error ? error.message : String(error)}`
       )
       return new Uint8Array([])

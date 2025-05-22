@@ -3,12 +3,54 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { tcpService } from './tcpService'
+import { logger } from './utils/logger'
+import { LogLevel } from '../utils/types'
 
 let bluetoothPinCallback
 let selectBluetoothCallback
 
+// Initialize logger with default settings
+logger.setEnabled(true)
+logger.setLogLevel(LogLevel.INFO)
+
+// Add IPC handlers for logging settings
+ipcMain.handle('logger:getSettings', () => {
+  return {
+    isEnabled: logger.isEnabled,
+    logLevel: logger.getLogLevel()
+  }
+})
+
+ipcMain.handle('logger:setEnabled', (_, enabled: boolean) => {
+  logger.setEnabled(enabled)
+})
+
+ipcMain.handle('logger:setLogLevel', (_, level: LogLevel) => {
+  logger.setLogLevel(level)
+})
+
+// Handle logs from renderer process
+ipcMain.on('logger:log', (_, level: LogLevel, ...args: unknown[]) => {
+  switch (level) {
+    case 'DEBUG':
+      logger.debug(...args)
+      break
+    case 'INFO':
+      logger.info(...args)
+      break
+    case 'WARN':
+      logger.warn(...args)
+      break
+    case 'ERROR':
+      logger.error(...args)
+      break
+  }
+})
+
 function createWindow(): void {
   // Create the browser window.
+  const preloadPath = join(__dirname, '../preload/index.js')
+
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -16,8 +58,10 @@ function createWindow(): void {
     autoHideMenuBar: true,
     icon,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      preload: preloadPath,
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 
@@ -43,7 +87,7 @@ function createWindow(): void {
     event.preventDefault()
     selectBluetoothCallback = callback
 
-    console.log('Available Bluetooth devices:', deviceList)
+    logger.info('Available Bluetooth devices:', deviceList)
 
     // Show the device list to the user and let them select
     mainWindow.webContents.send('bluetooth-devices-found', deviceList)
@@ -126,9 +170,6 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
 

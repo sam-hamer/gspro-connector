@@ -1,8 +1,8 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*"],
+  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*", "src/utils/**/*", "src/renderer/src/lib/bluetooth.ts", "src/renderer/src/lib/byteConversionUtils.test.ts", "src/renderer/src/lib/byteConversionUtils.ts", "src/renderer/src/lib/encryption.ts", "src/renderer/src/lib/webApi.ts", "src/renderer/src/lib/logger.ts"],
   "compilerOptions": {
     "composite": true,
-    "types": ["electron-vite/node"]
+    "types": ["electron-vite/node", "jest"]
   }
 }
