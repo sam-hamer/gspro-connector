@@ -20,7 +20,7 @@ function App(): JSX.Element {
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
       <MenuBar />
-      <main className="flex-1 p-4">
+      <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/golf-shots" element={<GolfShotsPage />} />

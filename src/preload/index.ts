@@ -33,6 +33,9 @@ const api = {
     },
     error: (...args: unknown[]): void => {
       ipcRenderer.send('logger:log', 'ERROR', ...args)
+    },
+    getLogs: (): Promise<string> => {
+      return ipcRenderer.invoke('logger:getLogs')
     }
   },
 
