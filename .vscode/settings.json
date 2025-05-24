@@ -7,5 +7,6 @@
   },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "githubLocalActions.actCommand": "act --pull=false --container-architecture linux/amd64 -P macos-latest=gspro-connector-act:latest -P windows-latest=gspro-connector-act:latest"
 }

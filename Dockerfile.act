@@ -1,0 +1,28 @@
+FROM ubuntu:22.04
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Wine
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    wine \
+    wine32 \
+    wine64 \
+    libwine \
+    fonts-wine \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Wine prefix
+ENV WINEPREFIX=/root/.wine
+ENV WINEARCH=win64 
