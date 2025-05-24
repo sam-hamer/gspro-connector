@@ -12,6 +12,7 @@ import {
   SelectValue
 } from '../../components/ui/select'
 import { LogLevel } from '../../../../utils/types'
+import { Button } from '../../components/ui/button'
 
 export default function Settings(): JSX.Element {
   const [isLoggingEnabled, setIsLoggingEnabled] = useState(true)
@@ -24,6 +25,10 @@ export default function Settings(): JSX.Element {
       setLogLevel(settings.logLevel)
     })
   }, [])
+
+  const handleOpenLogsLocation = async (): Promise<void> => {
+    await window.electronAPI.logger.openLogsLocation()
+  }
 
   const handleLoggingToggle = async (enabled: boolean): Promise<void> => {
     setIsLoggingEnabled(enabled)
@@ -59,17 +64,22 @@ export default function Settings(): JSX.Element {
 
             <div className="space-y-2">
               <Label>Log Level</Label>
-              <Select value={logLevel} onValueChange={handleLogLevelChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select log level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={LogLevel.DEBUG}>Debug</SelectItem>
-                  <SelectItem value={LogLevel.INFO}>Info</SelectItem>
-                  <SelectItem value={LogLevel.WARN}>Warning</SelectItem>
-                  <SelectItem value={LogLevel.ERROR}>Error</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex justify-between">
+                <Select value={logLevel} onValueChange={handleLogLevelChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select log level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={LogLevel.DEBUG}>Debug</SelectItem>
+                    <SelectItem value={LogLevel.INFO}>Info</SelectItem>
+                    <SelectItem value={LogLevel.WARN}>Warning</SelectItem>
+                    <SelectItem value={LogLevel.ERROR}>Error</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={handleOpenLogsLocation}>
+                  Open Logs Location
+                </Button>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Set the minimum level of logs to display
               </p>

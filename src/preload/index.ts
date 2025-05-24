@@ -13,6 +13,9 @@ const api = {
     getLoggerSettings: (): Promise<{ isEnabled: boolean; logLevel: LogLevel }> => {
       return ipcRenderer.invoke('logger:getSettings')
     },
+    openLogsLocation: (): Promise<void> => {
+      return ipcRenderer.invoke('logger:openLogsLocation')
+    },
     setLoggerEnabled: (enabled: boolean): Promise<void> => {
       return ipcRenderer.invoke('logger:setEnabled', enabled)
     },

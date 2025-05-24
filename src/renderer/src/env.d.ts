@@ -4,6 +4,7 @@ interface Window {
   electronAPI: {
     logger: {
       getLoggerSettings: () => Promise<{ isEnabled: boolean; logLevel: LogLevel }>
+      openLogsLocation: () => Promise<void>
       setLoggerEnabled: (enabled: boolean) => Promise<void>
       setLoggerLevel: (level: LogLevel) => Promise<void>
       debug: (...args: unknown[]) => void

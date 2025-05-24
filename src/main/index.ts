@@ -21,6 +21,11 @@ ipcMain.handle('logger:getSettings', () => {
   }
 })
 
+ipcMain.handle('logger:openLogsLocation', () => {
+  const logsPath = app.getPath('logs')
+  shell.openPath(logsPath)
+})
+
 ipcMain.handle('logger:setEnabled', (_, enabled: boolean) => {
   logger.setEnabled(enabled)
 })
