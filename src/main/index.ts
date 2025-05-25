@@ -5,6 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import { tcpService } from './tcpService'
 import { logger } from './utils/logger'
 import { LogLevel } from '../utils/types'
+import { readFile } from 'fs/promises'
 
 let bluetoothPinCallback
 let selectBluetoothCallback
@@ -19,6 +20,11 @@ ipcMain.handle('logger:getSettings', () => {
     isEnabled: logger.isEnabled,
     logLevel: logger.getLogLevel()
   }
+})
+
+ipcMain.handle('logger:openLogsLocation', () => {
+  const logsPath = app.getPath('logs')
+  shell.openPath(logsPath)
 })
 
 ipcMain.handle('logger:setEnabled', (_, enabled: boolean) => {
@@ -44,6 +50,19 @@ ipcMain.on('logger:log', (_, level: LogLevel, ...args: unknown[]) => {
     case 'ERROR':
       logger.error(...args)
       break
+  }
+})
+
+// Add this with other IPC handlers
+ipcMain.handle('logger:getLogs', async () => {
+  try {
+    const logsPath = app.getPath('logs')
+    const logFilePath = join(logsPath, 'app.log')
+    const content = await readFile(logFilePath, 'utf-8')
+    return content
+  } catch (error) {
+    console.error('Error reading log file:', error)
+    return ''
   }
 })
 

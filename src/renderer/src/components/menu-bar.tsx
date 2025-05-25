@@ -33,7 +33,7 @@ export function MenuBar(): JSX.Element {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background">
-      <div className="container flex h-16 items-center justify-between px-4">
+      <div className=" flex w-full h-16 justify-between px-4">
         {/* App Name */}
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
@@ -43,46 +43,53 @@ export function MenuBar(): JSX.Element {
         </div>
 
         {/* Mobile Navigation */}
-        <Sheet>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon" aria-label="Menu">
-              <Menu className="h-6 w-6 text-foreground" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[240px] sm:w-[300px]">
-            <nav className="grid gap-6 pt-6">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={`flex items-center gap-2 px-2 py-1 text-lg font-medium ${
-                      location.pathname === item.href
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+        <div className="md:hidden flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon" aria-label="Menu">
+                <Menu className="h-6 w-6 text-foreground" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[240px] sm:w-[300px]">
+              <nav className="grid gap-6 pt-6">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`flex items-center gap-2 px-2 py-1 text-lg font-medium ${
+                        location.pathname === item.href
+                          ? 'text-primary'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={Icon} className="h-5 w-5" />
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </nav>
+              {/* Theme Toggle (Mobile) */}
+              <div className="absolute bottom-4 right-4">
+                {mounted && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                    aria-label="Toggle theme"
                   >
-                    <FontAwesomeIcon icon={Icon} className="h-5 w-5" />
-                    {item.name}
-                  </Link>
-                )
-              })}
-            </nav>
-            {/* Theme Toggle (Mobile) */}
-            <div className="absolute bottom-4 right-4">
-              {mounted && (
-                <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
-                  {isDarkMode ? (
-                    <Moon className="h-5 w-5 text-foreground" />
-                  ) : (
-                    <Sun className="h-5 w-5 text-foreground" />
-                  )}
-                </Button>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
+                    {isDarkMode ? (
+                      <Moon className="h-5 w-5 text-foreground" />
+                    ) : (
+                      <Sun className="h-5 w-5 text-foreground" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex md:items-center md:gap-6">
