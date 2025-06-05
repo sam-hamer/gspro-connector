@@ -37,6 +37,10 @@ interface BluetoothRemoteGATTCharacteristic {
     type: string,
     listener: (event: CharacteristicValueChangedEvent) => void
   ) => void
+  removeEventListener: (
+    type: string,
+    listener: (event: CharacteristicValueChangedEvent) => void
+  ) => void
 }
 
 type CharacteristicValueChangedEvent = {
@@ -82,6 +86,7 @@ class BluetoothManager {
   private webApiClient: WebApiClient | null = null
   private batteryLevel: number
   private isDeviceSetup: boolean
+  private subscribedCharacteristics: Set<BluetoothRemoteGATTCharacteristic>
 
   constructor() {
     this.primaryService = null
@@ -92,6 +97,17 @@ class BluetoothManager {
     this.lastHeartbeatReceived = 0
     this.batteryLevel = 0
     this.isDeviceSetup = false
+    this.subscribedCharacteristics = new Set()
+  }
+
+  private removeExistingListeners(): void {
+    this.subscribedCharacteristics.forEach((characteristic) => {
+      characteristic.removeEventListener(
+        'characteristicvaluechanged',
+        this.handleCharacteristicValueChanged.bind(this)
+      )
+    })
+    this.subscribedCharacteristics.clear()
   }
 
   async initializeWebApiClient(): Promise<void> {
@@ -238,6 +254,8 @@ class BluetoothManager {
         throw new Error('Primary service not available')
       }
 
+      this.removeExistingListeners()
+
       const eventsCharacteristic = await this.primaryService.getCharacteristic(
         EVENTS_CHARACTERISTIC_UUID
       )
@@ -247,19 +265,7 @@ class BluetoothManager {
         this.handleCharacteristicValueChanged.bind(this)
       )
       await eventsCharacteristic.startNotifications()
-
-      //   const heartbeatCharacteristic =
-      //     await this.primaryService.getCharacteristic(
-      //       HEARTBEAT_CHARACTERISTIC_UUID,
-      //     );
-      //   Logger.debug("got heartbeat characteristic");
-      //   if (heartbeatCharacteristic == null) return false;
-      //   heartbeatCharacteristic.addEventListener(
-      //     "characteristicvaluechanged",
-      //     this.handleCharacteristicValueChanged.bind(this),
-      //   );
-      //   await heartbeatCharacteristic.startNotifications();
-      //   Logger.debug("Subscribed to heartbeat characteristic");
+      this.subscribedCharacteristics.add(eventsCharacteristic)
 
       const writeResponseCharacteristic = await this.primaryService.getCharacteristic(
         WRITE_RESPONSE_CHARACTERISTIC_UUID
@@ -270,6 +276,7 @@ class BluetoothManager {
         this.handleCharacteristicValueChanged.bind(this)
       )
       await writeResponseCharacteristic.startNotifications()
+      this.subscribedCharacteristics.add(writeResponseCharacteristic)
 
       const measurementCharacteristic = await this.primaryService.getCharacteristic(
         MEASUREMENT_CHARACTERISTIC_UUID
@@ -280,6 +287,7 @@ class BluetoothManager {
         this.handleCharacteristicValueChanged.bind(this)
       )
       await measurementCharacteristic.startNotifications()
+      this.subscribedCharacteristics.add(measurementCharacteristic)
       Logger.debug('Subscribed to measurement characteristic')
 
       Logger.debug('Successfully Subscribed to all notifications')
