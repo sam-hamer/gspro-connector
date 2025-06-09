@@ -63,7 +63,7 @@
     "linux": {
       "target": [
         {
-          "target": "AppImage",
+          "target": "zip",
           "arch": [
             "x64",
             "arm64"
