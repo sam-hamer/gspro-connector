@@ -15,12 +15,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest]
         include:
           - os: macos-latest
             platform: mac
           - os: windows-latest
             platform: win
+          - os: ubuntu-latest
+            platform: linux
 
     steps:
       - name: Check out Git repository
@@ -42,8 +44,10 @@ jobs:
         run: |
           if [[ "${{ matrix.platform }}" == "mac" ]]; then
             npm run build:mac
-          else
+          elif [[ "${{ matrix.platform }}" == "win" ]]; then
             npm run build:win
+          else
+            npm run build:linux
           fi
 
       - name: Upload artifacts
