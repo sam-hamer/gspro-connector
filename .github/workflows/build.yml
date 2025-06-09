@@ -54,6 +54,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
-          path: release/*.zip
+          path: |
+            release/*.zip
+            release/*.AppImage
           compression-level: 9
           if-no-files-found: ignore
