@@ -38,6 +38,12 @@ linux:
   maintainer: electronjs.org
   category: Utility
   icon: resources/icon.png
+  executableName: gspro-connector
+  desktop:
+    Name: GSPro Connector
+    Comment: Connector for MLM2Pro Launch Monitor to GSPro
+    Type: Application
+    Categories: Utility;
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

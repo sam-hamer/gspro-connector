@@ -59,6 +59,26 @@
         }
       ],
       "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "executableName": "gspro-connector",
+      "desktop": {
+        "Name": "GSPro Connector",
+        "Comment": "Connector for MLM2Pro Launch Monitor to GSPro",
+        "Type": "Application",
+        "Categories": "Utility;"
+      }
     }
   },
   "dependencies": {
