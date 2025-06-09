@@ -12,6 +12,9 @@ import {
   SelectValue
 } from '../../components/ui/select'
 import { LogLevel } from '../../../../utils/types'
+import { Button } from '../../components/ui/button'
+import { FolderOpen } from 'lucide-react'
+import { LogViewer } from '../../components/log-viewer'
 
 export default function Settings(): JSX.Element {
   const [isLoggingEnabled, setIsLoggingEnabled] = useState(true)
@@ -24,6 +27,10 @@ export default function Settings(): JSX.Element {
       setLogLevel(settings.logLevel)
     })
   }, [])
+
+  const handleOpenLogsLocation = async (): Promise<void> => {
+    await window.electronAPI.logger.openLogsLocation()
+  }
 
   const handleLoggingToggle = async (enabled: boolean): Promise<void> => {
     setIsLoggingEnabled(enabled)
@@ -41,7 +48,7 @@ export default function Settings(): JSX.Element {
         <h1 className="text-2xl font-bold">Settings</h1>
       </header>
 
-      <main className="container mx-auto max-w-5xl">
+      <main className="container mx-auto max-w-5xl space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Logging Settings</CardTitle>
@@ -59,21 +66,40 @@ export default function Settings(): JSX.Element {
 
             <div className="space-y-2">
               <Label>Log Level</Label>
-              <Select value={logLevel} onValueChange={handleLogLevelChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select log level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={LogLevel.DEBUG}>Debug</SelectItem>
-                  <SelectItem value={LogLevel.INFO}>Info</SelectItem>
-                  <SelectItem value={LogLevel.WARN}>Warning</SelectItem>
-                  <SelectItem value={LogLevel.ERROR}>Error</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex justify-between">
+                <Select value={logLevel} onValueChange={handleLogLevelChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select log level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={LogLevel.DEBUG}>Debug</SelectItem>
+                    <SelectItem value={LogLevel.INFO}>Info</SelectItem>
+                    <SelectItem value={LogLevel.WARN}>Warning</SelectItem>
+                    <SelectItem value={LogLevel.ERROR}>Error</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  onClick={handleOpenLogsLocation}
+                  className="flex items-center gap-2"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  Open Logs
+                </Button>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Set the minimum level of logs to display
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Log Viewer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LogViewer />
           </CardContent>
         </Card>
       </main>
